@@ -1,0 +1,106 @@
+## 1. Odpalanie dockera:
+
+docker-compose up -d --build
+
+## 2. mongoimport:
+
+// KOMENDY KTÓRE MOŻNA WPISAĆ JAK SĄ BŁĘDY Z DOSTĘPEM DO BAZY DANYCH:
+// sudo setenforce 0 
+// chmod 777 custom-entrypoint.sh -- to aktualnie nie działa w sensie jest wyłączone i nic nie robi
+// chmod 777 mongo-init.js 
+
+docker exec -it travel-mongo bash
+mongoimport --uri "mongodb://user:password@travel-mongo:27017/TravelDB" --collection travelOffers --type json --file /var/my-db/travel-offers.json --jsonArray
+
+## 3. działanie bazy danych:
+
+docker run -it --rm --network backend-network mongo mongosh --host travel-mongo -u mongoadmin -p secret --authenticationDatabase admin TravelDB
+show collections
+db.travelOffers.find().pretty();
+
+
+## 4. działanie GATEWAY API:
+
+
+curl http://localhost:5000/
+curl http://localhost:5000/data
+
+**  Krok 2.mongoimport powinien być wykonywany przez skrypt, np. custom-entrypoin.sh albo oddzielny skrypt pythonowy. Aktualnie trzeba to robić manualnie.
+***  INFO: https://hub.docker.com/_/mongo
+
+
+
+
+???
+chmod 777 custom-entrypoint.sh 
+chmod 777 mongo-init.js 
+???
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#### #### #####      STARE       #### #### ####
+
+
+
+
+## 1. tworzenie sieci:
+
+docker network create backend-network
+
+## 2. Odpalanie dockera:
+
+docker run -d -v /home/eragoh/Projects/RSWW-mikroserwisy/travelDB-mongoDB:/var/my-db --network backend-network --name travel-mongo -e MONGO_INITDB_ROOT_USERNAME=mongoadmin -e MONGO_INITDB_ROOT_PASSWORD=secret mongo
+
+docker run -it --rm --network backend-network mongo mongosh --host travel-mongo -u mongoadmin -p secret --authenticationDatabase admin TravelDB
+
+## 3. W mongosh:
+
+// możliwe że trzeba stworzyć przynajmniej jedną byle jaką kolekcję, tak żeby show dbs pokazywało że jest taka db   db.myNewCollection.insert({ someKey: "someValue" })
+// use TravelDB
+
+db.createUser({
+  user: "user",
+  pwd: "password",
+  roles: [
+    { role: "readWrite", db: "TravelDB" }
+  ]
+})
+
+show users
+exit
+
+## 4. mongoimport:
+
+// sudo setenforce 0
+
+docker exec -it travel-mongo bash
+mongoimport --uri "mongodb://user:password@travel-mongo:27017/TravelDB" --collection travelOffers --type json --file /var/my-db/travel-offers.json --jsonArray
+
+## 5. działanie:
+
+docker run -it --rm --network backend-network mongo mongosh --host travel-mongo -u mongoadmin -p secret --authenticationDatabase admin TravelDB
+show collections
+db.travelOffers.find().pretty()
+
+
+**  Trzeba to przerobić tak żeby docker compose to załatwiał, a potem jakiś skrypt
+*** Możliwe że lepiej da się to zrobić jakoś bez uwierzytelniania dobrze ustalając zmienne w docker compose
+****  INFO: https://hub.docker.com/_/mongo
