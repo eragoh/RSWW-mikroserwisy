@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, Response
+from flask import Flask, jsonify, Response, request
 from flask_pymongo import PyMongo
 from bson import json_util
 
@@ -11,13 +11,25 @@ mongo = PyMongo(app)
 def hello_world():
     return 'Hello, Gateway!'
 
-@app.route('/data')
-def get_data():
-    some_data = mongo.db.travelOffers.find_one()  # Adjust this to your collection and query needs
+
+@app.route('/data/<page>')
+def get_data_page(page):
+    try:
+        some_data = list(mongo.db.travelOffers.find().skip(int(page) * 10).limit(10))
+    except:
+        return get_data()
     if not some_data:
         return jsonify({"error": "No data found"}), 404
-    # Use bson.json_util.dumps to serialize the MongoDB object including ObjectId to JSON
     return Response(json_util.dumps(some_data), mimetype='application/json')
+
+
+@app.route('/data/')
+def get_data():
+    some_data = list(mongo.db.travelOffers.find().limit(10))
+    if not some_data:
+        return jsonify({"error": "No data found"}), 404
+    return Response(json_util.dumps(some_data), mimetype='application/json')
+
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
