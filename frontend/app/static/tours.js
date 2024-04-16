@@ -53,6 +53,9 @@ export default{
                         <span>{{tour.country}}, {{tour.city}}</span>
                         </div>
                         <div class="mt-1 mb-0 text-muted small">
+                        <i class="bi bi-calendar-range"></i> {{tour.start_date}} - {{tour.end_date}}<br />
+                        <i class="bi bi-airplane"></i> {{tour.departure_location}}<br />
+                        <i class="bi bi-houses"></i> 
                         <span v-if="tour.room.is_standard">Pokój standardowy</span>
                         <span v-if="tour.room.is_standard" class="text-primary"> • </span>
                         <span v-if="tour.room.is_family">Pokój rodzinny</span>
@@ -70,11 +73,12 @@ export default{
                     </div>
                     <div class="col-md-6 col-lg-3 col-xl-3 border-sm-start-none border-start">
                         <div class="d-flex flex-row align-items-center mb-1">
-                        <h4 class="mb-1 me-1">$13.99</h4>
-                        <span class="text-danger"><s>$20.99</s></span>
+                        <h4 class="mb-1 me-1">{{tour.price}}zł/os.</h4>
+                        <span class="text-danger"><s>{{1.2 * tour.price}}zł</s></span>
                         </div>
                         <h6 class="text-success">Dostępny</h6>
                         <div class="d-flex flex-column mt-4">
+                        
                         <button @click="redirectToTour(tour._id.$oid)" data-mdb-button-init data-mdb-ripple-init class="btn btn-primary btn-sm" type="button">Dalej</button>
                         <button data-mdb-button-init data-mdb-ripple-init class="btn btn-outline-primary btn-sm mt-2" type="button">
                             Kup teraz!
