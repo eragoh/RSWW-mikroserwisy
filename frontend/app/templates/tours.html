@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block title %} Wycieczki {% endblock %}
+
+{% block head %} 
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script src="{{ url_for('static', filename='app.js') }}" type="module" defer="defer"></script>
+{% endblock %}
+
+{% block body %}
+    <h1>Wycieczki - {{data.page}}</h1>
+    <div class="container" id="app">
+        <Tours description="Wycieczki" page="{{data.page}}"></Tours>
+    </div>
+{% endblock %}
