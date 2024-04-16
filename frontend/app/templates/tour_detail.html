@@ -2,6 +2,16 @@
 
 {% block title %} Wycieczka{% endblock %}
 
+{% block head %} 
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script src="{{ url_for('static', filename='app-tour.js') }}" type="module" defer="defer"></script>
+{% endblock %}
+
 {% block body %}
     <h1>Wycieczka</h1>
+
+    <div class="container" id="app">
+        <Tour></Tour>
+    </div>
+
 {% endblock %}

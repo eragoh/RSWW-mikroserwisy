@@ -1,7 +1,7 @@
 from flask import(
     Flask,
     render_template,
-    request
+    request,
 )
 import requests
 
@@ -40,12 +40,26 @@ def tours():
     }
     return render_template('tours.html', data=data)
 
+
 @app.route('/tours/<tourname>')
 def tours_detail(tourname):
     data = {
 
     }
     return render_template('tour_detail.html', data=data)
+
+@app.route('/tours/<tourname>/get/')
+def tour_detail(tourname):
+    
+    try:
+        response = requests.get(f'http://gateway-api:5000/data/tours/{tourname}')
+        if response.status_code == 200:
+            json_data = response.json()
+            return json_data
+    except requests.exceptions.RequestException as e:
+        None
+    return None
+
 
 @app.route('/gettoursss/')
 def gettoursss():

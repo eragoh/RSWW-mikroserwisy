@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, Response, request
-from flask_pymongo import PyMongo
+from flask_pymongo import PyMongo, ObjectId
 from bson import json_util
 
 app = Flask(__name__)
@@ -11,6 +11,15 @@ mongo = PyMongo(app)
 def hello_world():
     return 'Hello, Gateway!'
 
+@app.route('/data/tours/<tour>')
+def get_data_tour(tour):
+    try:
+        some_data = mongo.db.travelOffers.find_one({"_id": ObjectId(tour)})
+    except:
+        return get_data()
+    if not some_data:
+        return jsonify({"error": "No data found"}), 404
+    return Response(json_util.dumps(some_data), mimetype='application/json')
 
 @app.route('/data/<page>')
 def get_data_page(page):
