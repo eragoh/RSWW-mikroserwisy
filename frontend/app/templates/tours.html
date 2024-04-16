@@ -9,6 +9,78 @@
 
 {% block body %}
     <h1>Wycieczki - {{data.page}}</h1>
+
+    <form action="#" method="post">
+        <label for="country">Kraj docelowy:</label>
+        <select id="country" name="country">
+
+        </select>
+
+        <label for="start_date">Data rozpoczęcia podróży:</label>
+        <input type="date" id="start_date" name="start_date">
+
+        <label for="return_date">Data powrotu:</label>
+        <input type="date" id="return_date" name="return_date">
+
+        <label for="adults">Liczba dorosłych (powyżej 18 lat):</label>
+        <input type="number" id="adults" name="adults" min="1" max="10">
+
+        <label for="children">Liczba dzieci (do 18 lat):</label>
+        <input type="number" id="children" name="children" min="0" max="10">
+
+        <input type="submit" value="Wyślij">
+    </form>
+
+    <script>
+        // Lista państw
+        var countries = [
+            "Afganistan", "Albania", "Algieria", "Andora", "Angola", "Anguilla", "Antarktyka", "Antigua i Barbuda",
+            "Arabia Saudyjska", "Argentyna", "Armenia", "Aruba", "Australia", "Austria", "Azerbejdżan", "Bahamy",
+            "Bahrajn", "Bangladesz", "Barbados", "Belgia", "Belize", "Benin", "Bermudy", "Bhutan", "Białoruś",
+            "Boliwia", "Bonaire, Sint Eustatius i Saba", "Bośnia i Hercegowina", "Botswana", "Brazylia", "Brunei",
+            "Brytyjskie Terytorium Oceanu Indyjskiego", "Brytyjskie Wyspy Dziewicze", "Bułgaria", "Burkina Faso",
+            "Burundi", "Chile", "Chiny", "Chorwacja", "Curaçao", "Cypr", "Czad", "Czarnogóra", "Czechy",
+            "Dalekie Wyspy Mniejsze Stanów Zjednoczonych", "Dania", "Demokratyczna Republika Konga", "Dominika",
+            "Dominikana", "Dżibuti", "Egipt", "Ekwador", "Erytrea", "Estonia", "Etiopia", "Falklandy", "Fidżi",
+            "Filipiny", "Finlandia", "Francja", "Francuskie Terytoria Południowe i Antarktyczne", "Gabon", "Gambia",
+            "Georgia Południowa i Sandwich Południowy", "Ghana", "Gibraltar", "Grecja", "Grenada", "Grenlandia",
+            "Gruzja", "Guam", "Guernsey", "Gujana", "Gujana Francuska", "Gwadelupa", "Gwatemala", "Gwinea",
+            "Gwinea Bissau", "Gwinea Równikowa", "Haiti", "Hiszpania", "Holandia", "Honduras", "Hongkong", "Indie",
+            "Indonezja", "Irak", "Iran", "Irlandia", "Islandia", "Izrael", "Jamajka", "Japonia", "Jemen", "Jersey",
+            "Jordania", "Kajmany", "Kambodża", "Kamerun", "Kanada", "Katar", "Kazachstan", "Kenia", "Kirgistan",
+            "Kiribati", "Kolumbia", "Komory", "Kongo", "Korea Południowa", "Korea Północna", "Kosowo", "Kostaryka",
+            "Kuba", "Kuwejt", "Laos", "Lesotho", "Liban", "Liberia", "Libia", "Liechtenstein", "Litwa", "Luksemburg",
+            "Łotwa", "Macedonia Północna", "Madagaskar", "Majotta", "Makau", "Malawi", "Malediwy", "Malezja", "Mali",
+            "Malta", "Mariany Północne", "Maroko", "Martynika", "Mauretania", "Mauritius", "Meksyk", "Mikronezja",
+            "Mjanma", "Mołdawia", "Monako", "Mongolia", "Montserrat", "Mozambik", "Namibia", "Nauru", "Nepal",
+            "Niemcy", "Niger", "Nigeria", "Nikaragua", "Niue", "Norfolk", "Norwegia", "Nowa Kaledonia", "Nowa Zelandia",
+            "Oman", "Pakistan", "Palau", "Palestyna", "Panama", "Papua-Nowa Gwinea", "Paragwaj", "Peru", "Pitcairn",
+            "Polinezja Francuska", "Polska", "Portoryko", "Portugalia", "Republika Środkowoafrykańska", "Republika Południowej Afryki",
+            "Republika Zielonego Przylądka", "Rosja", "Rumunia", "Rwanda", "Sahara Zachodnia", "Saint Kitts i Nevis",
+            "Saint Lucia", "Saint Vincent i Grenadyny", "Saint-Barthélemy", "Saint-Martin", "Saint-Pierre i Miquelon",
+            "Salwador", "Samoa", "Samoa Amerykańskie", "San Marino", "Senegal", "Serbia", "Seszele", "Sierra Leone",
+            "Singapur", "Sint Maarten", "Słowacja", "Słowenia", "Somalia", "Sri Lanka", "Stany Zjednoczone", "Sudan",
+            "Sudan Południowy", "Surinam", "Svalbard i Jan Mayen", "Syria", "Szwajcaria", "Szwecja", "Tadżykistan",
+            "Tajlandia", "Tajwan", "Tanzania", "Timor Wschodni", "Togo", "Tokelau", "Tonga", "Trynidad i Tobago",
+            "Tunezja", "Turcja", "Turkmenistan", "Turks i Caicos", "Tuvalu", "Uganda", "Ukraina", "Urugwaj", "Uzbekistan",
+            "Vanuatu", "Watykan", "Wenezuela", "Węgry", "Wielka Brytania", "Wietnam", "Włochy", "Wybrzeże Kości Słoniowej",
+            "Wyspa Bouveta", "Wyspa Bożego Narodzenia", "Wyspa Man", "Wyspa Świętej Heleny", "Wyspy Alandzkie", "Wyspy Cooka",
+            "Wyspy Dziewicze Stanów Zjednoczonych", "Wyspy Heard i McDonalda", "Wyspy Kokosowe", "Wyspy Marshalla", "Wyspy Owcze",
+            "Wyspy Salomona", "Wyspy Świętego Tomasza i Książęca", "Zambia", "Zimbabwe"
+        ];
+
+        // Znajdź element select
+        var selectElement = document.getElementById("country");
+
+        // Dodaj opcje do select za pomocą pętli
+        for (var i = 0; i < countries.length; i++) {
+            var option = document.createElement("option");
+            option.text = countries[i];
+            option.value = countries[i];
+            selectElement.add(option);
+        }
+    </script>
+
     <div class="container" id="app">
         <Tours description="Wycieczki" page="{{data.page}}"></Tours>
     </div>
