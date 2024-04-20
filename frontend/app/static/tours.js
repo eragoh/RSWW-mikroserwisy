@@ -5,13 +5,16 @@ export default{
     data() {
     return {
         tours: [],
+        countries: [],
         filter: '',
     }
 },
     methods: {
         load: async function(){
-            const url = '/gettoursss?page=' + this.page;
+            const url = '/gettours?page=' + this.page;
             this.tours = await (await fetch(url)).json();
+
+            this.countries = await (await fetch('/getcountries/')).json();
         },
         redirectToTour(url) {
             window.location.href = url;
@@ -23,6 +26,30 @@ export default{
         this.load();
     },
     template: /*html*/`
+
+    <form action="#" method="post">
+        <label for="country">Kraj docelowy:</label>
+        <select id="country" name="country">
+            <option v-for="country in countries" :value="country">
+                {{country}}
+            </option>
+        </select>
+
+        <label for="start_date">Data rozpoczęcia podróży:</label>
+        <input type="date" id="start_date" name="start_date">
+
+        <label for="return_date">Data powrotu:</label>
+        <input type="date" id="return_date" name="return_date">
+
+        <label for="adults">Liczba dorosłych (powyżej 18 lat):</label>
+        <input type="number" id="adults" name="adults" min="1" max="10">
+
+        <label for="children">Liczba dzieci (do 18 lat):</label>
+        <input type="number" id="children" name="children" min="0" max="10">
+
+        <input type="submit" value="Wyślij">
+    </form>
+
         <h3 class="text-center mt-3">{{description}}</h3>
 
         <section style="background-color: #eee;">

@@ -11,6 +11,11 @@ mongo = PyMongo(app)
 def hello_world():
     return 'Hello, Gateway!'
 
+@app.route('/data/countries')
+def get_countries():
+    some_data = mongo.db.travelOffers.distinct("country")
+    return Response(json_util.dumps(some_data), mimetype='application/json')
+
 @app.route('/data/tours/<tour>')
 def get_data_tour(tour):
     try:
