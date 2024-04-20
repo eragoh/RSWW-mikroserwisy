@@ -3,16 +3,31 @@ from flask import(
     render_template,
     request,
 )
-import requests
+import asyncio
+import aiohttp
 
 app = Flask(__name__)
 
+async def get_response(url):
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                if response.status == 200:
+                    json_data = await response.json()
+                    return json_data
+    except aiohttp.ClientError as e:
+        return f"Bad request - {e}"
+    return "Bad request"
+async def arender(html, data):
+    task = asyncio.to_thread(render_template, html, data=data)
+    return await task
+
 @app.route('/')
-def index():
+async def index():
     data = {
         'is_authenticated' : True
     }
-    return render_template('index.html', data=data)
+    return await arender('index.html', data)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -23,75 +38,43 @@ def login():
 
     }
     return render_template('login.html', data=data)
-@app.route('/register')
-def register():
-    data = {
 
-    }
-    return render_template('register.html', data=data)
+@app.route('/register')
+async def register():
+    return await arender('register.html', {})
 
 @app.route('/tours/')
-def tours():
+async def tours():
     page_number = request.args.get('page')
     page = int(page_number) if (page_number and page_number.isdigit()) else 1
     data = {
         'is_authenticated' : False,
         'page' : page
     }
-    return render_template('tours.html', data=data)
-
+    return await arender('tours.html', data=data)
 
 @app.route('/tours/<tourname>')
-def tours_detail(tourname):
-    data = {
-
-    }
-    return render_template('tour_detail.html', data=data)
+async def tours_detail(tourname):
+    return await arender('tour_detail.html', {})
 
 @app.route('/tours/<tourname>/get/')
-def tour_detail(tourname):
-    
-    try:
-        response = requests.get(f'http://gateway-api:5000/data/tours/{tourname}')
-        if response.status_code == 200:
-            json_data = response.json()
-            return json_data
-    except requests.exceptions.RequestException as e:
-        None
-    return None
+async def tour_detail(tourname):
+    return await get_response(f'http://gateway-api:6543/data/tours/{tourname}')
 
+@app.route('/getcountries/')
+async def getcountries():
+    return await get_response('http://gateway-api:6543/data/countries')
 
-@app.route('/gettoursss/')
-def gettoursss():
+@app.route('/gettours/')
+async def gettours():
     page_number = request.args.get('page')
     page = int(page_number) if (page_number and page_number.isdigit()) else 1
-    try:
-        response = requests.get(f'http://gateway-api:5000/data/{page - 1}')
-        if response.status_code == 200:
-            json_data = response.json()
-            return json_data
-    except requests.exceptions.RequestException as e:
-        return None
-    return None
+    return await get_response(f'http://gateway-api:6543/data/{page - 1}')
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
-def catch_all(path):
-    try:
-        response = requests.get('http://gateway-api:5000/data')
-        if response.status_code == 200:
-            json_data = response.json()
-        data = {
-            'is_authenticated' : False,
-            'response' : json_data
-        }
-    except requests.exceptions.RequestException as e:
-        data = {
-            'is_authenticated' : False,
-            'response' : f'dupa {e}'
-        }
-    
-    return render_template('404.html', data=data)
+async def catch_all(path):
+    return await arender('404.html', {})
 
 
 if __name__ == '__main__':
