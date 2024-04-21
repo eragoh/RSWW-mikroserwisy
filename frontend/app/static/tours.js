@@ -7,6 +7,13 @@ export default{
         tours: [],
         countries: [],
         filter: '',
+        formData: {
+            country: '',
+            start_date: '',
+            return_date: '',
+            adults: 0,
+            children: 0
+        }
     }
 },
     methods: {
@@ -18,8 +25,36 @@ export default{
         },
         redirectToTour(url) {
             window.location.href = url;
-        }      
-        
+        },
+        async submitForm() {
+            const url = `/gettoursparameters?page=${this.page}&country=${this.formData.country}&start_date=${this.formData.start_date}&return_date=${this.formData.return_date}&adults=${this.formData.adults}&children=${this.formData.children}`;
+            this.tours = await (await fetch(url)).json();
+        },
+        roomsf: function(t){
+            var rooms = ''
+            if(t.is_standard){
+                rooms += '<span>Pokój standardowy</span>';
+            }
+            if(t.is_family){
+                if(rooms !== ''){
+                    rooms += '<span class="text-primary"> • </span>';
+                }
+                rooms += '<span>Pokój rodzinny</span>';
+            }
+            if(t.is_apartment){
+                if(rooms !== ''){
+                    rooms += '<span class="text-primary"> • </span>';
+                }
+                rooms += '<span>Apartament</span>';
+            }
+            if(t.is_studio){
+                if(rooms !== ''){
+                    rooms += '<span class="text-primary"> • </span>';
+                }
+                rooms += '<span>Studio</span>';
+            }
+            return rooms;
+        }     
     },
     computed: {},
     mounted() {
@@ -27,27 +62,28 @@ export default{
     },
     template: /*html*/`
 
-    <form action="#" method="post">
+    <form @submit.prevent="submitForm">
         <label for="country">Kraj docelowy:</label>
-        <select id="country" name="country">
+        <select id="country" name="country" v-model="formData.country" >
+            <option>Wszystkie</option>
             <option v-for="country in countries" :value="country">
                 {{country}}
             </option>
         </select>
 
         <label for="start_date">Data rozpoczęcia podróży:</label>
-        <input type="date" id="start_date" name="start_date">
+        <input type="date" id="start_date" name="start_date" v-model="formData.start_date" >
 
         <label for="return_date">Data powrotu:</label>
-        <input type="date" id="return_date" name="return_date">
+        <input type="date" id="return_date" name="return_date" v-model="formData.return_date" >
 
         <label for="adults">Liczba dorosłych (powyżej 18 lat):</label>
-        <input type="number" id="adults" name="adults" min="1" max="10">
+        <input type="number" id="adults" name="adults" min="1" max="10" v-model="formData.adults" >
 
         <label for="children">Liczba dzieci (do 18 lat):</label>
-        <input type="number" id="children" name="children" min="0" max="10">
+        <input type="number" id="children" name="children" min="0" max="10" v-model="formData.children" >
 
-        <input type="submit" value="Wyślij">
+        <input type="submit" value="Szukaj">
     </form>
 
         <h3 class="text-center mt-3">{{description}}</h3>
@@ -77,22 +113,17 @@ export default{
                         <div class="text-danger mb-1 me-2" v-for="star in 5 - tour.score">
                             <i class="bi bi-star"></i>                            
                         </div>
-                        <span>{{tour.country}}, {{tour.city}}</span>
+                        <span>
+                            {{ tour.country }}{{ tour.city !== '' ? ', ' + tour.city : '' }}
+                        </span>
                         </div>
                         <div class="mt-1 mb-0 text-muted small">
-                        <i class="bi bi-calendar-range"></i> {{tour.start_date}} - {{tour.end_date}}<br />
-                        <i class="bi bi-airplane"></i> {{tour.departure_location}}<br />
-                        <i class="bi bi-houses"></i> 
-                        <span v-if="tour.room.is_standard">Pokój standardowy</span>
-                        <span v-if="tour.room.is_standard" class="text-primary"> • </span>
-                        <span v-if="tour.room.is_family">Pokój rodzinny</span>
-                        <span><br /></span>
-                        </div>
-                        <div class="mb-2 text-muted small">
-                        <span v-if="tour.room.is_apartment">Apartament</span>
-                        <span v-if="tour.room.is_apartment" class="text-primary"> • </span>
-                        <span v-if="tour.room.is_studio">Studio</span>
-                        <span><br /></span>
+                            <i class="bi bi-calendar-range"></i> {{tour.start_date}} - {{tour.end_date}}<br />
+                            <i class="bi bi-airplane"></i> {{tour.departure_location}}<br />
+                            <div style="display: inline-flex; align-items: center;">
+                                <i class="bi bi-houses"></i>
+                                <div style="margin-left: 8px;" class="mb-2 text-muted small" v-html="roomsf(tour.room)"></div>
+                            </div>
                         </div>
                         <p class="text-truncate mb-4 mb-md-0">
                         {{tour.description}}

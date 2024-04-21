@@ -11,6 +11,31 @@ export default{
             const url = window.location.href + '/get/';
             this.tour = await (await fetch(url)).json();
         },
+        roomsf: function(t){
+            var rooms = ''
+            if(t.is_standard){
+                rooms += '<span>Pokój standardowy</span>';
+            }
+            if(t.is_family){
+                if(rooms !== ''){
+                    rooms += '<span class="text-primary"> • </span>';
+                }
+                rooms += '<span>Pokój rodzinny</span>';
+            }
+            if(t.is_apartment){
+                if(rooms !== ''){
+                    rooms += '<span class="text-primary"> • </span>';
+                }
+                rooms += '<span>Apartament</span>';
+            }
+            if(t.is_studio){
+                if(rooms !== ''){
+                    rooms += '<span class="text-primary"> • </span>';
+                }
+                rooms += '<span>Studio</span>';
+            }
+            return rooms;
+        }
         
     },
     computed: {},
@@ -21,7 +46,7 @@ export default{
     
     <div v-if="tour">
     <div class="my-3 p-3">
-        <h2 class="display-5">{{ tour.city }}, {{ tour.country }}</h2>
+        <h2 class="display-5">{{ tour.country }}{{ tour.city !== '' ? ', ' + tour.city : '' }}</h2>
         <img :src="tour.img" alt="Hotel Image" style="max-width: 100%;">
         <p class="lead">{{ tour.description }}</p>
     </div>
@@ -36,20 +61,14 @@ export default{
                     <i class="bi bi-star"></i>                            
                 </div>
             </div>
-            <div class="mt-1 mb-0 text-muted small">
-                <span v-if="tour.room.is_standard">Pokój standardowy</span>
-                <span v-if="tour.room.is_standard" class="text-primary"> • </span>
-                <span v-if="tour.room.is_family">Pokój rodzinny</span>
-                <span><br /></span>
-            </div>
+            
             <div class="mb-2 text-muted small">
                 <i class="bi bi-calendar-range"></i> {{tour.start_date}} - {{tour.end_date}}<br />
                 <i class="bi bi-airplane"></i> {{tour.departure_location}}<br />
-                <i class="bi bi-houses"></i> 
-                <span v-if="tour.room.is_apartment">Apartament</span>
-                <span v-if="tour.room.is_apartment" class="text-primary"> • </span>
-                <span v-if="tour.room.is_studio">Studio</span>
-                <span><br /></span>
+                <div style="display: inline-flex; align-items: center;">
+                    <i class="bi bi-houses"></i>
+                    <div style="margin-left: 8px;" class="mb-2 text-muted small" v-html="roomsf(tour.room)"></div>
+                </div>
             </div>
         </div>
         <div class="col-md-6">
