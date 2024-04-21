@@ -52,6 +52,23 @@ async def tours():
         'page' : page
     }
     return await arender('tours.html', data=data)
+  
+@app.route('/gettoursparameters/',)
+async def toursparameters():
+    # VALIDATION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # VALIDATION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # VALIDATION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # VALIDATION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    country     = request.args.get('country')
+    if country == 'Wszystkie':
+        country = 'None'
+    start_date  = request.args.get('start_date')
+    return_date = request.args.get('return_date')
+    adults      = request.args.get('adults')
+    children    = request.args.get('children')
+    return await get_response(
+        f'http://gateway-api:6543/data/tours/parameters?country={country}&start={start_date}&end={return_date}&adults={adults}&children={children}'
+    )
 
 @app.route('/tours/<tourname>')
 async def tours_detail(tourname):
