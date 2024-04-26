@@ -55,14 +55,19 @@ def get_parametrized_data():
     adults      = request.args.get('adults')
     children    = request.args.get('children')
     search_dict = {}
-    if country != 'None':
-        search_dict['country'] = country
-    if start_date: # nie dziala jeszcze
-        search_dict['start_date'] = {'$gte': start_date}
-    if return_date: # nie dziala jeszcze
-        search_dict['end_date'] = {'$lte': return_date}
+    
 
     try:
+        if country:
+            search_dict['country'] = country
+        if start_date:
+            search_dict['start_date'] = {'$gte': start_date}
+        if return_date:
+            search_dict['end_date'] = {'$lte': return_date}
+        if adults:
+            search_dict['adults'] = {'$gte': int(adults)}
+        if children:
+            search_dict['children'] = {'$gte': int(children)}
         some_data = [
             {**offer, 'price': get_price(offer)} 
             for offer in 

@@ -13,7 +13,8 @@ export default{
             return_date: '',
             adults: 0,
             children: 0
-        }
+        },
+        showform: false
     }
 },
     methods: {
@@ -28,7 +29,12 @@ export default{
         },
         async submitForm() {
             const url = `/gettoursparameters?page=${this.page}&country=${this.formData.country}&start_date=${this.formData.start_date}&return_date=${this.formData.return_date}&adults=${this.formData.adults}&children=${this.formData.children}`;
-            this.tours = await (await fetch(url)).json();
+            try{
+                var response = await (await fetch(url)).json();
+                this.tours = response;
+            }catch(error){
+                this.tours = null;
+            }
         },
         roomsf: function(t){
             var rooms = ''
@@ -54,7 +60,16 @@ export default{
                 rooms += '<span>Studio</span>';
             }
             return rooms;
-        }     
+        },
+        showformFunction: function() {
+            var button = document.getElementById("showformButton");
+            if(this.showform){
+                button.innerText = "Pokaż opcje wyszukiwania";
+            }else{
+                button.innerText = "Schowaj opcje wyszukiwania";
+            }
+            this.showform = !this.showform;
+        }
     },
     computed: {},
     mounted() {
@@ -62,36 +77,51 @@ export default{
     },
     template: /*html*/`
 
-    <form @submit.prevent="submitForm">
-        <label for="country">Kraj docelowy:</label>
-        <select id="country" name="country" v-model="formData.country" >
-            <option>Wszystkie</option>
-            <option v-for="country in countries" :value="country">
-                {{country}}
-            </option>
-        </select>
+    <button class="btn btn-primary mb-2" id="showformButton" @click="showformFunction()">Pokaż opcje wyszukiwania</button>
 
-        <label for="start_date">Data rozpoczęcia podróży:</label>
-        <input type="date" id="start_date" name="start_date" v-model="formData.start_date" >
-
-        <label for="return_date">Data powrotu:</label>
-        <input type="date" id="return_date" name="return_date" v-model="formData.return_date" >
-
-        <label for="adults">Liczba dorosłych (powyżej 18 lat):</label>
-        <input type="number" id="adults" name="adults" min="1" max="10" v-model="formData.adults" >
-
-        <label for="children">Liczba dzieci (do 18 lat):</label>
-        <input type="number" id="children" name="children" min="0" max="10" v-model="formData.children" >
-
-        <input type="submit" value="Szukaj">
+    <form v-if="showform" @submit.prevent="submitForm">
+        <div class="form-group">
+            <label for="country">Kraj docelowy</label>
+            <select class="form-control" id="country" name="country" v-model="formData.country" >
+                <option></option>
+                <option v-for="country in countries" :value="country">
+                    {{country}}
+                </option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="start_date">Data rozpoczęcia podróży:</label>
+            <input class="form-control" type="date" id="start_date" name="start_date" v-model="formData.start_date" >
+        </div>
+        <div class="form-group">
+            <label for="return_date">Data powrotu:</label>
+            <input class="form-control" type="date" id="return_date" name="return_date" v-model="formData.return_date" >
+        </div>
+        <div class="form-group">
+            <label for="country">Liczba dorosłych</label>
+            <select class="form-control" id="adults" name="adults" v-model="formData.adults" >
+                <option v-for="index in 10" :key="index">
+                    {{index}}
+                </option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="country">Liczba dzieci (do 18 lat)</label>
+            <select class="form-control" id="children" name="children" v-model="formData.children" >
+                <option v-for="index in 11" :key="index">
+                    {{index - 1}}
+                </option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary mb-2" style="width: 100%; text-align: center;">Szukaj</button>
     </form>
-
         <h3 class="text-center mt-3">{{description}}</h3>
 
         <section style="background-color: #eee;">
         <div class="container py-5">
 
-            <div class="row justify-content-center mb-3" v-for="tour in tours">
+        
+            <div class="row justify-content-center mb-3" v-if="tours" v-for="tour in tours">
             <div class="col-md-12 col-xl-10">
                 <div class="card shadow-0 border rounded-3">
                 <div class="card-body">
@@ -147,6 +177,9 @@ export default{
                 </div>
                 </div>
             </div>
+            </div>
+            <div v-else>
+                😔 Brak dostępnych wycieczek o podanych parametrach. 😔
             </div>
 
 
