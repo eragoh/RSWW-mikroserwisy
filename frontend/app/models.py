@@ -20,7 +20,11 @@ def create():
                 {'username': 'user3', 'password': 'password3'},
                 {'username': 'user4', 'password': 'password4'},
                 {'username': 'user5', 'password': 'password5'},
-                {'username': 'user6', 'password': 'password6'}
+                {'username': 'user6', 'password': 'password6'},
+                {'username': 'user7', 'password': 'password7'},
+                {'username': 'user8', 'password': 'password8'},
+                {'username': 'user9', 'password': 'password9'},
+                {'username': 'admin', 'password': 'admin'},
             ]
             for user_data in users:
                 user = User(**user_data)
