@@ -24,10 +24,10 @@
 
             
             <ul class="navbar-nav ms-auto">
-            {% if data.is_authenticated %}
+            {% if current_user.is_authenticated %}
                 <li class="nav-item">
                     <a class="nav-link" href="/logout">
-                        <i class="bi bi-box-arrow-in-left"></i> Wyloguj się
+                        <i class="bi bi-box-arrow-in-left"></i> Wyloguj się {{current_user.username}}
                     </a>
                 </li>
             {% else %}

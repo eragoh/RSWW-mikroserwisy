@@ -86,7 +86,7 @@ export default{
     </div>
 </div>
 <div v-else>
-    <p>Loading...</p>
+    <p>😔 Brak dostępnych wycieczek o podanych parametrach. 😔</p>
 </div>
 
   `
