@@ -37,6 +37,15 @@ services:
       - FLASK_RUN_HOST=0.0.0.0
     networks:
       - backend-network
+
+  rabbitmq-gateway:
+    container_name: rabbitmq-gateway
+    build: ./rabbitmq-gateway
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - backend-network
     
 
 networks:

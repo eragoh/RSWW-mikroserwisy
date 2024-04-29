@@ -2,9 +2,13 @@ from flask import(
     Flask,
     render_template,
     request,
+    jsonify
 )
 import asyncio
 import aiohttp
+import json
+
+from rabbitmqclient import RClient
 
 app = Flask(__name__)
 
@@ -21,6 +25,19 @@ async def get_response(url):
 async def arender(html, data):
     task = asyncio.to_thread(render_template, html, data=data)
     return await task
+
+async def get_rmq_response(qname):
+    rclient = RClient()
+    try:
+        await rclient.connect()
+        response = await rclient.call(n=None, qname=qname)    
+    except Exception as e:
+        return f"Error: {e}"
+    finally:
+        await rclient.close()
+    
+    return json.loads(response.decode())
+
 
 @app.route('/')
 async def index():
@@ -70,11 +87,13 @@ async def tours_detail(tourname):
 
 @app.route('/tours/<tourname>/get/')
 async def tour_detail(tourname):
-    return await get_response(f'http://gateway-api:6543/data/tours/{tourname}')
+    return await get_rmq_response('data_tour')
+    #return await get_response(f'http://gateway-api:6543/data/tours/{tourname}')
 
 @app.route('/getcountries/')
 async def getcountries():
-    return await get_response('http://gateway-api:6543/data/countries')
+    return await get_rmq_response('countries')
+    #return await get_response(f'http://gateway-api:6543/data/countries')
 
 @app.route('/gettours/')
 async def gettours():
