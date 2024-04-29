@@ -87,8 +87,8 @@ async def tours_detail(tourname):
 
 @app.route('/tours/<tourname>/get/')
 async def tour_detail(tourname):
-    return await get_rmq_response('data_tour')
-    #return await get_response(f'http://gateway-api:6543/data/tours/{tourname}')
+    #return await get_rmq_response('data_tour')
+    return await get_response(f'http://gateway-api:6543/data/tours/{tourname}')
 
 @app.route('/getcountries/')
 async def getcountries():
