@@ -47,6 +47,13 @@ services:
     networks:
       - backend-network
     
+  api-gateway:
+    container_name: api-gateway
+    build: ./api-gateway
+    networks:
+      - backend-network
+
+    
 
 networks:
   backend-network:

@@ -26,11 +26,11 @@ async def arender(html, data):
     task = asyncio.to_thread(render_template, html, data=data)
     return await task
 
-async def get_rmq_response(qname):
+async def get_rmq_response(qname, n=None):
     rclient = RClient()
     try:
         await rclient.connect()
-        response = await rclient.call(n=None, qname=qname)    
+        response = await rclient.call(n, qname=qname)    
     except Exception as e:
         return f"Error: {e}"
     finally:
