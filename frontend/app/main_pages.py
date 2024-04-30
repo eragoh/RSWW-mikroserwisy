@@ -21,7 +21,7 @@ async def tours():
     }
     return await arender('tours.html', data=data)
 
-@mainpages.route('/tours/<tourname>')
+@mainpages.route('/tours/<tourname>/')
 async def tours_detail(tourname):
     return await arender('tour_detail.html', {})
 

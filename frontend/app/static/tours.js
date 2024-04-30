@@ -27,6 +27,9 @@ export default{
         redirectToTour(url) {
             window.location.href = url;
         },
+        redirectToReservation(url) {
+            window.location.href = url + '/buy/';
+        },
         async submitForm() {
             const url = `/gettoursparameters?page=${this.page}&country=${this.formData.country}&start_date=${this.formData.start_date}&return_date=${this.formData.return_date}&adults=${this.formData.adults}&children=${this.formData.children}`;
             try{
@@ -168,7 +171,7 @@ export default{
                         <div class="d-flex flex-column mt-4">
                         
                         <button @click="redirectToTour(tour._id.$oid)" data-mdb-button-init data-mdb-ripple-init class="btn btn-primary btn-sm" type="button">Dalej</button>
-                        <button data-mdb-button-init data-mdb-ripple-init class="btn btn-outline-primary btn-sm mt-2" type="button">
+                        <button @click="redirectToReservation(tour._id.$oid)" data-mdb-button-init data-mdb-ripple-init class="btn btn-outline-primary btn-sm mt-2" type="button">
                             Kup teraz!
                         </button>
                         </div>

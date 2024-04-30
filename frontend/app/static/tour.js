@@ -8,8 +8,11 @@ export default{
 },
     methods: {
         load: async function(){
-            const url = window.location.href + '/get/';
+            const url = window.location.href + 'get/';
             this.tour = await (await fetch(url)).json();
+        },
+        redirectToReservation(url) {
+            window.location.href += 'buy/';
         },
         roomsf: function(t){
             var rooms = ''
@@ -78,7 +81,7 @@ export default{
             </div>
             <h6 class="text-success">Dostępny</h6>
             <div class="d-flex flex-column mt-4">
-                <button data-mdb-button-init data-mdb-ripple-init class="btn btn-outline-primary btn-sm mt-2" type="button">
+                <button @click="redirectToReservation(tour._id.$oid)" data-mdb-button-init data-mdb-ripple-init class="btn btn-outline-primary btn-sm mt-2" type="button">
                     Kup teraz!
                 </button>
             </div>

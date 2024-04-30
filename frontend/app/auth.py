@@ -29,6 +29,7 @@ async def register():
 
 @auth.route('/logout/')
 @login_required
-def logout():
+async def logout():
     logout_user()
-    return redirect('/login/')
+    task = asyncio.to_thread(redirect, '/login/')
+    return await task
