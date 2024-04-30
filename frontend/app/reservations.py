@@ -12,3 +12,8 @@ reservations = Blueprint('reservations', __name__)
 @login_required
 async def buy(tourname):
     return await arender('buy.html', {})
+
+@reservations.route('/reservations/')
+@login_required
+async def myreservations():
+    return await arender('reservations.html', {})

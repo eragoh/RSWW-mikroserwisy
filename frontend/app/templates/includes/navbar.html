@@ -26,18 +26,23 @@
             <ul class="navbar-nav ms-auto">
             {% if current_user.is_authenticated %}
                 <li class="nav-item">
-                    <a class="nav-link" href="/logout">
+                    <a class="nav-link" href="/reservations/">
+                        <i class="bi bi-basket3-fill"></i> Moje rezerwacje
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/logout/">
                         <i class="bi bi-box-arrow-in-left"></i> Wyloguj się {{current_user.username}}
                     </a>
                 </li>
             {% else %}
                 <li class="nav-item">
-                    <a class="nav-link" href="/register">
+                    <a class="nav-link" href="/register/">
                         <i class="bi bi-person"></i> Zarejestruj się
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/login">
+                    <a class="nav-link" href="/login/">
                         <span class="glyphicon glyphicon-log-in">
                         <i class="bi bi-box-arrow-in-right"></i> Zaloguj się
                     </a>
