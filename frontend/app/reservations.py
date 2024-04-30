@@ -8,10 +8,16 @@ async def arender(html, data):
 
 reservations = Blueprint('reservations', __name__)
 
-@reservations.route('/tours/<tourname>/buy/')
+@reservations.route('/tours/<tourname>/buy/', methods=['GET', 'POST'])
 @login_required
 async def buy(tourname):
-    return await arender('buy.html', {})
+    if request.method == 'POST':
+        return request.form
+    
+    data = {
+        'tourid': tourname
+    }
+    return await arender('buy.html', data)
 
 @reservations.route('/reservations/')
 @login_required
