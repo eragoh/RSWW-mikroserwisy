@@ -1,16 +1,52 @@
 from flask import Flask, jsonify, Response, request
 from flask_pymongo import PyMongo, ObjectId
 from bson import json_util
+from datetime import datetime
 
 app = Flask(__name__)
 app.config["MONGO_URI"] = "mongodb://user:password@travel-mongo:27017/TravelDB"
 
 mongo = PyMongo(app)
 
-def get_price(old_price):
-    # jakis algorytm wyliczajacy cene, na podstawie
-    # ceny, aktualnej daty, itp. itd.
-    return 1200
+def get_seasonal_factor(month):
+    if month in [6, 7, 8]:  # Summer
+        return 1.2
+    elif month in [12, 1, 2]: # Winter
+        return 1.1
+    return 1.0
+
+def get_price(offer):
+    base_price = offer.get('price', 4500)
+    start_date = datetime.strptime(offer['start_date'], "%Y-%m-%d")
+    end_date = datetime.strptime(offer['end_date'], "%Y-%m-%d")
+    start_month = start_date.month
+    end_month = end_date.month
+
+    # Define a helper function to get seasonal factors
+    def get_seasonal_factor(month):
+        if month in [6, 7, 8]:  # Summer
+            return 1.2
+        elif month in [12, 1, 2]: # Winter
+            return 1.1
+        return 1.0
+
+    # Average the seasonal factors of start and end months
+    seasonal_factor = (get_seasonal_factor(start_month) + get_seasonal_factor(end_month)) / 2
+
+    config_adjustment = 0
+    if offer['room']['is_family']:
+        config_adjustment += 200
+    elif offer['room']['is_standard']:
+        config_adjustment += 400
+    elif offer['room']['is_apartment']:
+        config_adjustment += 900
+
+    score_factor = offer['score']/5 * 0.89
+
+    total_price = (base_price + config_adjustment) * seasonal_factor * score_factor
+    total_price = round(total_price) + 0.99
+    return total_price
+
 
 @app.route('/')
 def hello_world():

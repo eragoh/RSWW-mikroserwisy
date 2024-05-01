@@ -165,7 +165,7 @@ export default{
                     <div class="col-md-6 col-lg-3 col-xl-3 border-sm-start-none border-start">
                         <div class="d-flex flex-row align-items-center mb-1">
                         <h4 class="mb-1 me-1">{{tour.price}}zł/os.</h4>
-                        <span class="text-danger"><s>{{1.2 * tour.price}}zł</s></span>
+                        <span class="text-danger"><s>{{Math.round(1.2 * tour.price) + 0.99}}zł</s></span>
                         </div>
                         <h6 class="text-success">Dostępny</h6>
                         <div class="d-flex flex-column mt-4">
