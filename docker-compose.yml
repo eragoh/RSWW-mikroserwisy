@@ -52,6 +52,14 @@ services:
     build: ./api-gateway
     networks:
       - backend-network
+    
+  payment_service:
+    container_name: payment-service
+    build: ./microservices/payment
+    environment:
+      - FLASK_APP=app.py
+    networks:
+      - backend-network
 
     
 
