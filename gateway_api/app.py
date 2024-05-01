@@ -75,8 +75,8 @@ def get_tour_clock(tour):
     if tour in reservations.keys():
         clock = (datetime.now() - reservations[tour]).seconds
         if clock > 60:
-            del reservations[tour]
-            clock = 0
+           reservations[tour] = datetime.now()
+           clock = 60
         else:
             clock = 60 - clock
     else:
