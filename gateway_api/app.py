@@ -152,6 +152,17 @@ def get_data():
     if not some_data:
         return jsonify({"error": "No data found"}), 404
     return Response(json_util.dumps(some_data), mimetype='application/json')
+ 
+ 
+@app.route('/payment/process/')
+def process_payment():
+    payment_data = {"XD3": "XD3"}
+    response = requests.post("http://payment-service:6544/process/", json=payment_data)
+    if response.status_code != 200:
+        return jsonify({"error": "Payment processing failed"}), response.status_code
+    return jsonify(response.json()), 200
+
+
 
 
 if __name__ == '__main__':
