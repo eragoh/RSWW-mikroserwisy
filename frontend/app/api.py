@@ -33,7 +33,7 @@ async def gettours():
 @api.route('/gettoursparameters/',)
 async def toursparameters():
     url = 'http://gateway-api:6543/data/tours/parameters?'  
-    parameters = ('country', 'start_date', 'return_date', 'adults', 'children')
+    parameters = ('country', 'start_date', 'return_date', 'adults', 'children3', 'children10', 'children18', 'departue')
     for parameter in parameters:
         arg = request.args.get(parameter)
         if arg:

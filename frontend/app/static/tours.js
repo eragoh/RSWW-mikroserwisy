@@ -11,8 +11,11 @@ export default{
             country: '',
             start_date: '',
             return_date: '',
+            departue: '',
             adults: 0,
-            children: 0
+            children3: 0,
+            children10: 0,
+            children18: 0,
         },
         showform: false
     }
@@ -31,7 +34,7 @@ export default{
             window.location.href = url + '/buy/';
         },
         async submitForm() {
-            const url = `/gettoursparameters?page=${this.page}&country=${this.formData.country}&start_date=${this.formData.start_date}&return_date=${this.formData.return_date}&adults=${this.formData.adults}&children=${this.formData.children}`;
+            const url = `/gettoursparameters?page=${this.page}&country=${this.formData.country}&start_date=${this.formData.start_date}&return_date=${this.formData.return_date}&adults=${this.formData.adults}&children3=${this.formData.children3}&children10=${this.formData.children10}&children18=${this.formData.children18}&departue=${this.formData.departue}`;
             try{
                 var response = await (await fetch(url)).json();
                 this.tours = response;
@@ -93,6 +96,17 @@ export default{
             </select>
         </div>
         <div class="form-group">
+            <label for="wylot">Wylot</label>
+            <select class="form-control" id="departue" name="departue" v-model="formData.departue" >
+                <option></option>    
+                <option>Gdańsk</option>
+                <option>Katowice</option>
+                <option>Kraków</option>
+                <option>Poznań</option>
+                <option>Warszawa</option>
+            </select>
+        </div>
+        <div class="form-group">
             <label for="start_date">Data rozpoczęcia podróży:</label>
             <input class="form-control" type="date" id="start_date" name="start_date" v-model="formData.start_date" >
         </div>
@@ -109,8 +123,24 @@ export default{
             </select>
         </div>
         <div class="form-group">
+            <label for="country">Liczba dzieci (do 3 lat)</label>
+            <select class="form-control" id="children3" name="children3" v-model="formData.children3" >
+                <option v-for="index in 11" :key="index">
+                    {{index - 1}}
+                </option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="country">Liczba dzieci (do 10 lat)</label>
+            <select class="form-control" id="children10" name="children10" v-model="formData.children10" >
+                <option v-for="index in 11" :key="index">
+                    {{index - 1}}
+                </option>
+            </select>
+        </div>
+        <div class="form-group">
             <label for="country">Liczba dzieci (do 18 lat)</label>
-            <select class="form-control" id="children" name="children" v-model="formData.children" >
+            <select class="form-control" id="children18" name="children18" v-model="formData.children18" >
                 <option v-for="index in 11" :key="index">
                     {{index - 1}}
                 </option>
