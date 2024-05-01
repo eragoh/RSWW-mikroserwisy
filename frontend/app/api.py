@@ -40,3 +40,8 @@ async def toursparameters():
             url += f'{parameter}={arg}&'  
 
     return await get_response(url)
+
+@api.route('/tours/<tourname>/minute/')
+async def oneminute_clock(tourname):
+    url = f'http://gateway-api:6543/clock/{tourname}'
+    return await get_response(url)

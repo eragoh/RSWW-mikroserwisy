@@ -4,13 +4,27 @@ export default{
     components: {},
     data() {
         return {
-            tour: null
+            tour: null,
+            countdown: 60,
+            timer: null,
         }
     },
     methods: {
         load: async function(){
             const url = '/tours/' + this.tourid + '/get/';
             this.tour = await (await fetch(url)).json();
+            
+            const url_minute = '/tours/' + this.tourid + '/minute/';
+            var clocktimer = await (await fetch(url_minute)).json();
+            this.countdown = clocktimer.clock;
+            this.timer = setInterval(() => {
+                if (this.countdown > 0) {
+                    this.countdown--;
+                } else {
+                    clearInterval(this.timer);
+                    window.location.href = '/tours/' + this.tourid;
+                }
+            }, 1000);
         },
     },
     computed: {},
@@ -22,16 +36,11 @@ export default{
         <div class="row">
             <div class="col-lg-4 mb-lg-0 mb-3">
                 <div class="card p-3">
-                    <div class="img-box">
-                        <img src="https://www.freepnglogos.com/uploads/visa-logo-download-png-21.png" alt="">
-                    </div>
-                    <div class="number">
-                        <label class="fw-bold" for="">**** **** **** 1060</label>
-                    </div>
-                    <div class="d-flex align-items-center justify-content-between">
-                        <small><span class="fw-bold">Expiry date:</span><span>10/16</span></small>
-                        <small><span class="fw-bold">Name:</span><span>ADMIN</span></small>
-                    </div>
+                <div class="countdown">
+                    <p>
+                        <h3>Pozostały czas do dokonania rezerwacji: 00:{{ countdown > 9 ? countdown : '0' + countdown }}</h3>
+                    </p>
+                </div>
                 </div>
             </div>
     

@@ -8,6 +8,8 @@ app.config["MONGO_URI"] = "mongodb://user:password@travel-mongo:27017/TravelDB"
 
 mongo = PyMongo(app)
 
+reservations = {}
+
 def get_seasonal_factor(month):
     if month in [6, 7, 8]:  # Summer
         return 1.2
@@ -67,6 +69,21 @@ def get_data_tour(tour):
     if not some_data:
         return jsonify({"error": "No data found"}), 404
     return Response(json_util.dumps(some_data), mimetype='application/json')
+
+@app.route('/clock/<tour>')
+def get_tour_clock(tour):
+    if tour in reservations.keys():
+        clock = (datetime.now() - reservations[tour]).seconds
+        if clock > 60:
+            del reservations[tour]
+            clock = 0
+        else:
+            clock = 60 - clock
+    else:
+        reservations[tour] = datetime.now()
+        clock = 60
+
+    return jsonify({'clock': clock})
 
 @app.route('/data/<page>')
 def get_data_page(page):
