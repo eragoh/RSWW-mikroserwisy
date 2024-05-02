@@ -2,6 +2,7 @@ from flask import Flask, jsonify, Response, request
 from flask_pymongo import PyMongo, ObjectId
 from bson import json_util
 from datetime import datetime
+import requests
 
 app = Flask(__name__)
 app.config["MONGO_URI"] = "mongodb://user:password@travel-mongo:27017/TravelDB"
