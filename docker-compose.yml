@@ -61,6 +61,14 @@ services:
     networks:
       - backend-network
 
+  reservation_service:
+    container_name: reservation_service
+    build: ./microservices/reservation
+    environment:
+      - FLASK_APP=app.py
+    networks:
+      - backend-network
+
   postgres_db:
     container_name: postgres-db-reservations
     build:
