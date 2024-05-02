@@ -61,7 +61,13 @@ services:
     networks:
       - backend-network
 
-    
+  postgres_db:
+    container_name: postgres-db-reservations
+    build:
+      context: ./reservations-postgres
+    networks:
+      - backend-network
+
 
 networks:
   backend-network:
