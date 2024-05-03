@@ -76,6 +76,15 @@ services:
     networks:
       - backend-network
 
+  redis:
+    container_name: redis-service
+    image: redis:latest
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - backend-network
+
 
 networks:
   backend-network:

@@ -1,177 +1,111 @@
-from flask import Flask, request, jsonify
-import psycopg2
-import threading
-import pika
-import time
+import asyncio
+import asyncpg
+import aio_pika
+import json
+import logging
+import sys
 
-app = Flask(__name__)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+stream_handler = logging.StreamHandler(sys.stdout)
+stream_handler.setFormatter(formatter)
+logger.addHandler(stream_handler)
 
-def get_connection():
-    connection = psycopg2.connect(
-        dbname="travel",
-        user="postgres",
-        password="postgres",
-        host="postgres-db-reservations"
-    )
-    return connection
-
-# Timer function
-def start_timer(trip_id, db_conn, time_to_wait=60):
-    time.sleep(time_to_wait)
-    cursor = db_conn.cursor()
-    
-    # If trip is still unpaid then delete Reservation
-    cursor.execute("SELECT * FROM reservations WHERE trip_id = %s AND paid = false", (trip_id,))
-    if cursor.rowcount > 0:
-        cursor.execute("DELETE FROM reservations WHERE trip_id = %s", (trip_id,))
-        db_conn.commit()
-
-# # Payment processing function
-# def process_payment(ch, method, properties, body):
-#     payment_info = eval(body) # Assuming payment_info is a dict-like string
-#     trip_id = payment_info.get('trip_id')
-#     success = payment_info.get('success')
-    
-#     db_conn = get_connection()
-#     cursor = db_conn.cursor()
-    
-#     if success:
-#         cursor.execute("UPDATE reservations SET paid = true WHERE trip_id = %s", (trip_id,))
-#         db_conn.commit()
-    
-#     cursor.close()
-#     db_conn.close()
-
-# def setup_rabbitmq_consumer():
-#     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
-#     channel = connection.channel()
-#     channel.queue_declare(queue='payments')
-    
-#     channel.basic_consume(queue='payments', on_message_callback=process_payment, auto_ack=True)
-#     threading.Thread(target=channel.start_consuming).start()
-
-def send_payment_to_rabbitmq(trip_id, card_number):
-    connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
-    channel = connection.channel()
-
-    channel.queue_declare(queue='payments')
-    
-    # Prepare message as a dictionary
-    payment_info = {'trip_id': trip_id, 'card_number': card_number}
-    
-    # Publish message to the queue
-    channel.basic_publish(
-        exchange='',
-        routing_key='payments',
-        body=str(payment_info)  # Convert dictionary to string for transport
+async def get_connection():
+    return await asyncpg.connect(
+        user='postgres', password='postgres', database='travel', host='postgres-db-reservations'
     )
 
-    connection.close()
-
-def listen_for_payment_response(trip_id):
-    connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
-    channel = connection.channel()
-
-    payment_success = None
-
-    def payment_callback(ch, method, properties, body):
-        nonlocal payment_success
-        payment_info = eval(body)  # Assuming payment_info is a dict-like string
-        if payment_info.get('trip_id') == trip_id:
-            payment_success = payment_info.get('success')
-            ch.stop_consuming()  # Stop after receiving relevant response
-
-    channel.queue_declare(queue='payment_responses')
-    channel.basic_consume(queue='payment_responses', on_message_callback=payment_callback, auto_ack=True)
-
-    start_time = time.time()
-
-    while True:
-        # Check if timeout has been exceeded
-        if time.time() - start_time >= 20:
-            connection.close()
-            return None  # Timeout occurred
-
-        # Process RabbitMQ messages
-        channel.connection.process_data_events(time_limit=1)  # Process messages for up to 1 second
-        if payment_success is not None:
-            connection.close()
-            return payment_success
-
-@app.route('/reservation/pay', methods=['POST'])
-def pay_reservation():
-    trip_id = request.form['trip_id']
-    card_number = request.form['card_number']
-    
-    db_conn = get_connection()
-    cursor = db_conn.cursor()
-    
-    cursor.execute("SELECT * FROM reservations WHERE trip_id = %s", (trip_id,))
-    reservation = cursor.fetchone()
-
-    if reservation is None:
-        cursor.close()
-        db_conn.close()
-        return jsonify({"message": "Reservation not available."}), 404
-
-    ## ?????????????????? == 'false' ???????????
-    elif reservation[-1]: # Assuming 'paid' column is the last in the reservation record
-        cursor.close()
-        db_conn.close()
-        return jsonify({"message": "Reservation already paid."}), 200
-
-    else:
-        # Send payment info to RabbitMQ
-        send_payment_to_rabbitmq(trip_id, card_number)
-
-        # Listen for payment response
-        payment_result = listen_for_payment_response(trip_id)
-
-        if payment_result is None:
-            cursor.close()
-            db_conn.close()
-            return jsonify({"message": "Payment timed out."}), 408
-
-        elif payment_result:
-            cursor.execute("DELETE FROM reservations WHERE trip_id = %s", (trip_id,))
-            cursor.execute(
-                "INSERT INTO reservations (username, trip_id, price, paid) VALUES (%s, %s, %s, true)",
-                (reservation[0], trip_id, reservation[2])  # Assuming columns are in order of username, trip_id, price
-            )
-            db_conn.commit()
-
-            cursor.close()
-            db_conn.close()
-            return jsonify({"message": "Payment & Reservation successful."}), 200
-
-        else:
-            cursor.close()
-            db_conn.close()
-            return jsonify({"message": "Payment failed."}), 400
-
-@app.route('/reservation/add', methods=['POST'])
-def add_reservation():
-    username = request.form['username']
-    trip_id = request.form['trip_id']
-    price = request.form['price']
-    
-    db_conn = get_connection()
-    cursor = db_conn.cursor()
-    
-    # Add reservation entry
-    cursor.execute(
-        "INSERT INTO reservations (username, trip_id, price, paid) VALUES (%s, %s, %s, false)",
-        (username, trip_id, price)
+# Setup connection to RabbitMQ using a specific function
+async def get_rabbit_connection():
+    return await aio_pika.connect_robust(
+        "amqp://admin:password@rabbitmq-gateway/"
     )
-    db_conn.commit()
-    
-    cursor.close()
-    db_conn.close()
-    
-    # Start timer for trip_id
-    threading.Thread(target=start_timer, args=(trip_id, db_conn)).start()
 
-    return jsonify({"message": "Reservation added successfully!"}), 201
+async def publish_event_to_queue(rabbit_connection, event, queue_name):
+    channel = await rabbit_connection.channel()  # Create a new channel
+    await channel.default_exchange.publish(
+        aio_pika.Message(body=json.dumps(event).encode()),
+        routing_key=queue_name
+    )
+    logger.info(f"Published event to {queue_name} with data: {event}")
+
+
+async def handle_reservation_response(rabbit_connection, reservation_info):
+    response_event = {
+        'event_id': reservation_info['event_id'],
+        'username': reservation_info['username'],
+        'status': 'RESERVED'
+    }
+    await publish_event_to_queue(rabbit_connection, response_event, 'result_queue')
+    logger.info("Reservation response handled and published.")
+
+
+async def start_timer(trip_id):
+    logger.info("--- TIMER STARTED")
+    await asyncio.sleep(1)
+    logger.info("--- TIMER ENDED")
+    await check_and_remove_unpaid_reservation(trip_id)
+
+async def check_and_remove_unpaid_reservation(trip_id):
+    conn = await get_connection()
+    async with conn.transaction():
+        await conn.execute("DELETE FROM reservations WHERE trip = $1 AND paid = false", trip_id)
+    await conn.close()
+
+async def handle_reservation_request(message: aio_pika.IncomingMessage):
+    logger.info("HANDLING")
+    reservation_info = json.loads(message.body)
+    username = reservation_info['username']
+    trip_id = reservation_info['trip_id']
+    price = reservation_info['price']
+
+    # db_conn = await get_connection()
+    # async with db_conn.transaction():
+    #     await db_conn.execute(
+    #         "INSERT INTO reservations (username, trip, price, paid) VALUES ($1, $2, $3, false)",
+    #         username, trip_id, price
+    #     )
+    # await db_conn.close()
+
+    rabbit_conn = await get_rabbit_connection()
+    await handle_reservation_response(rabbit_conn, reservation_info)
+    await start_timer(trip_id)
+    await rabbit_conn.close()
+
+async def handle_payment_request(message: aio_pika.IncomingMessage):
+    payment_info = json.loads(message.body)
+    trip_id = payment_info['trip_id']
+    success = payment_info['success']
+
+    conn = await get_connection()
+    async with conn.transaction():
+        if success:
+            await conn.execute("UPDATE reservations SET paid = true WHERE trip_id = $1", trip_id)
+    await conn.close()
+
+async def listen_to_rabbitmq():
+    # Use the dedicated function to connect to RabbitMQ
+    connection = await get_rabbit_connection()
+    channel = await connection.channel()
+    logger.info("LISTENING...")
+    # Declare queues
+    reservation_queue = await channel.declare_queue('reservation_queue')
+    #payment_response_queue = await channel.declare_queue('payment_responses')
+    print("XD1")
+    # Start consumers
+    # await asyncio.gather(
+    #     reservation_queue.consume(handle_reservation_request),
+    #     #payment_response_queue.consume(handle_payment_response),
+    # )
+    async with reservation_queue.iterator() as queue_iter:
+        async for message in queue_iter:
+            async with message.process():
+                await handle_reservation_request(message)
+    print("XD2")
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    logger.info("RESERV-ADD22")
+    print("XD0")
+    asyncio.run(listen_to_rabbitmq())

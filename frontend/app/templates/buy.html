@@ -145,11 +145,13 @@
     }
     </style>
 
-
+    {% if data.reserved %}
+    <h3> Wycieczka aktualnie jest zarezerwowana, spróbuj ponownie za minutę. </h3>
+    {% else %}
     <div class="container" id="app">
         <Reservation tourid="{{data.tourid}}"></Reservation>
     </div>
-
+    {% endif %}
 
     
 {% endblock %}

@@ -3,13 +3,75 @@ from flask_pymongo import PyMongo, ObjectId
 from bson import json_util
 from datetime import datetime
 import requests
+import pika
+import redis
+import json
+import threading
+import uuid
+import asyncio
+import logging
+import sys
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+stream_handler = logging.StreamHandler(sys.stdout)
+stream_handler.setFormatter(formatter)
+logger.addHandler(stream_handler)
+
 
 app = Flask(__name__)
 app.config["MONGO_URI"] = "mongodb://user:password@travel-mongo:27017/TravelDB"
+redis_client = redis.StrictRedis(host='redis-service', port=6379, db=0)
+rabbit_connection_params = pika.ConnectionParameters('rabbitmq-gateway', credentials=pika.PlainCredentials('admin', 'password'))
 
 mongo = PyMongo(app)
 
 reservations = {}
+
+# Listen for responses from RabbitMQ
+def listen_for_results():
+    connection = pika.BlockingConnection(rabbit_connection_params)
+    channel = connection.channel()
+    channel.queue_declare(queue='result_queue')
+
+    def callback(ch, method, properties, body):
+        result = json.loads(body)
+        event_id = result['event_id']
+        redis_client.set(event_id, body)
+
+    channel.basic_consume(queue='result_queue', on_message_callback=callback, auto_ack=True)
+    channel.start_consuming()
+
+# Start a separate thread to listen for results
+listener_thread = threading.Thread(target=listen_for_results)
+listener_thread.daemon = True
+listener_thread.start()
+
+async def get_response_from_redis(event_id):
+    while True:
+        result = redis_client.get(event_id)
+        if result:
+            logger.info("GOT EVENT!")
+            return json.loads(result)
+
+        await asyncio.sleep(1)  # Delay before checking again
+
+# Publish a purchase event directly to RabbitMQ
+def publish_event_to_queue(event, queue):
+    connection = pika.BlockingConnection(rabbit_connection_params)
+    channel = connection.channel()
+    channel.queue_declare(queue=queue)
+    channel.queue_declare(queue='result_queue')
+
+    channel.basic_publish(exchange='', routing_key=queue, body=json.dumps(event))
+    connection.close()
+
+def build_response(response_event):
+    event_id = response_event.pop('event_id', None)
+    return_code = response_event.pop('return_code', None)
+    # http_status = return_code if return_code else 500  # Default to 500 if no code is provided
+    return jsonify(response_event)
 
 def get_seasonal_factor(month):
     if month in [6, 7, 8]:  # Summer
@@ -114,7 +176,7 @@ def get_tour_clock(tour):
 def get_data_page(page):
     try:
         some_data = [
-            {**offer, 'price': get_price(offer)} 
+            {**offer, 'price': get_price(offer)}
             for offer in 
             list(mongo.db.travelOffers.find().skip(int(page) * 10).limit(10))
         ]
@@ -177,18 +239,105 @@ def get_data():
     if not some_data:
         return jsonify({"error": "No data found"}), 404
     return Response(json_util.dumps(some_data), mimetype='application/json')
- 
-
-@app.route('/payment/process/')
-def process_payment():
-    payment_data = {"XD3": "XD3"}
-    response = requests.post("http://payment-service:6544/process/", json=payment_data)
-    if response.status_code != 200:
-        return jsonify({"error": "Payment processing failed"}), response.status_code
-    return jsonify(response.json()), 200
 
 
+@app.route('/reservation/add/')
+async def add_reservation():
+    logger.info("RESERV-ADD")
+    username = request.args.get('username')
+    trip_id = request.args.get('trip_id')
+    price = request.args.get('price')
+    event_id = str(uuid.uuid4())
+    event = {
+        'event_id': event_id,
+        'username': username,
+        'trip_id': trip_id,
+        'price': price
+    }
 
+    logger.info("PUBLISH: %s", event_id)
+    publish_event_to_queue(event, 'reservation_queue')
+
+    logger.info("WAITING")
+    try:
+        logger.info(f"RESPONSE 1")
+        response_event = await asyncio.wait_for(get_response_from_redis(event_id), timeout=10000)
+        logger.info(f"RESPONSE 2 {response_event}")
+    except asyncio.TimeoutError as e:
+        logger.info(f"ERROR: {e}")
+        return jsonify({'error': f'Timeout while waiting for response: {e}'})
+
+
+    logger.info(f"RESPONSE 3 {response_event}")
+    response_event.pop('event_id', None)
+    logger.info(f"RESPONSE 4 {response_event}")
+    return response_event
+
+# @app.route('/reservation/add/', methods=['POST'])
+# def add_reservation():
+#     username = request.form.get('username')
+#     trip_id = request.form.get('trip_id')
+#     price = request.form.get('price')
+
+#     reservation_data = {
+#         'username': username,
+#         'trip_id': trip_id,
+#         'price': price
+#     }
+
+#     response = requests.post("http://reservation-service:5674/reservation/add", data=reservation_data)
+
+#     if response.status_code != 201:
+#         return jsonify({"error": "Failed to add reservation"}), response.status_code
+
+#     return jsonify(response.json()), 201
+
+
+
+@app.route('/reservation/pay/', methods=['POST'])
+async def pay_reservation():
+    trip_id = request.form.get('trip_id')
+    card_number = request.form.get('card_number')
+    price = request.form.get('price')
+
+    event_id = str(uuid.uuid4())
+
+    event = {
+        'event_id': event_id,
+        'trip_id': trip_id,
+        'card_number': card_number,
+        'price': price
+    }
+
+    publish_event_to_queue(event, 'reservation_queue')
+
+    try:
+        response_event = await asyncio.wait_for(get_response_from_redis(event_id), timeout=10000)
+    except asyncio.TimeoutError:
+        return jsonify({'error': 'Timeout while waiting for response'}), 500
+
+    return build_response(response_event)
+
+
+# @app.route('/reservation/pay/', methods=['POST'])
+# def pay_reservation():
+#     trip_id = request.form.get('trip_id')
+#     card_number = request.form.get('card_number')
+#     price = request.form.get('price')
+
+#     payment_data = {
+#         'trip_id': trip_id,
+#         'card_number': card_number,
+#         'price': price
+#     }
+
+#     response = requests.post("http://reservation-service:5674/reservation/pay", data=payment_data)
+
+#     if response.status_code not in {200, 202}:
+#         return jsonify({"error": "Payment failed"}), response.status_code
+
+#     return jsonify(response.json()), response.status_code
 
 if __name__ == '__main__':
+    app.logger.addHandler(stream_handler)
     app.run(debug=True, host='0.0.0.0')

@@ -1,1 +1,1 @@
-flask
+aio_pika

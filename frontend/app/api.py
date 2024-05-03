@@ -1,5 +1,6 @@
 import aiohttp
 from flask import Blueprint, request, jsonify
+from app import logger
 
 async def get_response(url):
     try:
@@ -7,10 +8,11 @@ async def get_response(url):
             async with session.get(url) as response:
                 if response.status == 200:
                     json_data = await response.json()
+                    logger.info(f"RESPONSE 55: {json_data}")
                     return json_data
     except aiohttp.ClientError as e:
-        return f"Bad request - {e}"
-    return "Bad request"
+        return {'error': f'Bad request - {e}'}
+    return {'error': 'Bad request'}
 
 api = Blueprint('api', __name__)
 
