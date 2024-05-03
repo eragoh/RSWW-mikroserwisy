@@ -11,21 +11,22 @@ export default {
                 adults: 1,
                 children3: 0,
                 children10: 0,
-                children18: 0
+                children18: 0,
+                room: 0,
             },
             price: 0,
+            paymentConfirmed: false
         }
     },
     methods: {
-        calculate_price: function(){
-            var sum = 0;
-            sum += this.formData.adults * this.tour.price;
-            sum += this.formData.children3 * 0.5 * this.tour.price;
-            sum += this.formData.children10 * 0.7 * this.tour.price;
-            sum += this.formData.children18 * 0.8 * this.tour.price;
-            this.price = sum.toFixed(2);
+        calculate_price: async function(){
+            var url = '/getprice/?price=' + this.tour.price + '&adults=' + this.formData.adults + '&ch3=' + this.formData.children3 + '&ch10=' + this.formData.children10 + '&ch18=' + this.formData.children18 + '&room=' + this.formData.room;
+            var priceresponse = await(await fetch(url)).json();
+            this.price = priceresponse.price.toFixed(2);
         },
-
+        confirmPayment: function() {
+            this.paymentConfirmed = true;
+        },
         load: async function(){
             const url = '/tours/' + this.tourid + '/get/';
             this.tour = await (await fetch(url)).json();
@@ -97,8 +98,12 @@ export default {
                                 <div class="col-lg-7">
                                     <form class="form" method="post">
                                         <div class="form__div">
+                                            <input readonly type="text" class="form-control" placeholder=" " name="price" :value="price">
+                                            <label for="" class="form__label">Cena</label>
+                                        </div>
+                                        <div class="form__div">
                                             <label for="adults">Liczba dorosłych</label>
-                                            <select class="form-control" id="adults" name="adults" v-model="formData.adults">
+                                            <select class="form-control" id="adults" name="adults" v-model="formData.adults" :disabled="paymentConfirmed">
                                                 <option v-for="index in tour.adults" :key="index">
                                                     {{index}}
                                                 </option>
@@ -107,7 +112,7 @@ export default {
                                         <div class="row">
                                             <div class="form__div col-4">
                                                 <label for="children3">Liczba dzieci (do 3 lat)</label>
-                                                <select class="form-control" id="children3" name="children3" v-model="formData.children3">
+                                                <select class="form-control" id="children3" name="children3" v-model="formData.children3" :disabled="paymentConfirmed">
                                                     <option v-for="index in tour.children_under_3 + 1" :key="index">
                                                         {{index - 1}}
                                                     </option>
@@ -115,7 +120,7 @@ export default {
                                             </div>
                                             <div class="form__div col-4">
                                                 <label for="children10">Liczba dzieci (do 10 lat)</label>
-                                                <select class="form-control" id="children10" name="children10" v-model="formData.children10">
+                                                <select class="form-control" id="children10" name="children10" v-model="formData.children10" :disabled="paymentConfirmed">
                                                     <option v-for="index in tour.children_under_10 + 1" :key="index">
                                                         {{index - 1}}
                                                     </option>
@@ -123,11 +128,35 @@ export default {
                                             </div>
                                             <div class="form__div col-4">
                                                 <label for="children18">Liczba dzieci (do 18 lat)</label>
-                                                <select class="form-control" id="children18" name="children18" v-model="formData.children18">
+                                                <select class="form-control" id="children18" name="children18" v-model="formData.children18" :disabled="paymentConfirmed">
                                                     <option v-for="index in tour.children_under_18 + 1" :key="index">
                                                         {{index - 1}}
                                                     </option>
                                                 </select>
+                                            </div>
+                                            <div class="form__div col-4">
+                                                <label for="children18">Typ pokoju</label>
+                                                <select class="form-control" id="room" name="room" v-model="formData.room" required :disabled="paymentConfirmed">
+                                                    <option disabled value="">Wybierz pokój</option>
+                                                    <option v-if="tour.room.is_apartment">
+                                                        Apartament
+                                                    </option>
+                                                    <option v-if="tour.room.is_family">
+                                                        Rodzinny
+                                                    </option>
+                                                    <option v-if="tour.room.is_standard">
+                                                        Standardowy
+                                                    </option>
+                                                    <option v-if="tour.room.is_studio">
+                                                        Studio
+                                                    </option>
+                                                </select>
+
+                                            </div>
+                                            <div class="form__div col-8">
+                                                <button class="btn btn-primary payment" @click.prevent="confirmPayment" :disabled="paymentConfirmed || !formData.room">
+                                                    Zatwierdź
+                                                </button>
                                             </div>
                                         </div>
                                     </form>
@@ -153,7 +182,7 @@ export default {
                                 </span>
                             </a>
                         </p>
-                        <div class="collapse show p-3 pt-0" id="collapseExample2">
+                        <div class="collapse show p-3 pt-0" id="collapseExample2" v-if="paymentConfirmed">
                             <div class="row">
                                 <div class="col-lg-5 mb-lg-0 mb-3">
                                     <p class="h4 mb-0">Podsumowanie</p>
@@ -168,6 +197,11 @@ export default {
                                            <div class="row">
                                             <div class="col-12">
                                                 <div class="form__div">
+                                                    <input hidden readonly type="text" class="form-control" placeholder=" " name="adults" v-model="formData.adults">
+                                                    <input hidden readonly type="text" class="form-control" placeholder=" " name="children3" v-model="formData.children3">
+                                                    <input hidden readonly type="text" class="form-control" placeholder=" " name="children10" v-model="formData.children10">
+                                                    <input hidden readonly type="text" class="form-control" placeholder=" " name="children18" v-model="formData.children18">
+                                                    <input hidden readonly type="text" class="form-control" placeholder=" " name="room" v-model="formData.room">
                                                     <input readonly type="text" class="form-control" placeholder=" " name="price" :value="price">
                                                     <label for="" class="form__label">Cena</label>
                                                 </div>

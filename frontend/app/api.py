@@ -1,5 +1,5 @@
 import aiohttp
-from flask import Blueprint, request
+from flask import Blueprint, request, jsonify
 
 async def get_response(url):
     try:
@@ -44,4 +44,38 @@ async def toursparameters():
 @api.route('/tours/<tourname>/minute/')
 async def oneminute_clock(tourname):
     url = f'http://gateway-api:6543/clock/{tourname}'
+    return await get_response(url)
+
+@api.route('/getmytours/')
+async def getmytours():
+    tours = [
+        { "name": '66329371bf2245d456ab3a2d', "paid": False, "price": 0},
+        { "name": '66329371bf2245d456ab3a2c', "paid": True, "price": 9.99},
+    ]
+    return jsonify(tours)
+
+@api.route('/getprice/')
+async def getprice():
+
+    data = {}
+    for arg in ('adults', 'ch3', 'ch10', 'ch18'):
+        try:
+            val = request.args.get(arg)
+            data[arg] = int(val) if val and val.isdigit() else 0
+        except:
+            data[arg] = 0
+    room = request.args.get('room')
+    
+    try:
+        pval = float(request.args.get('price'))
+        data['price'] = pval
+    except:
+        return jsonify({'Error': 'Error'})
+    
+    data['room'] = room if room else 'Standardowy'
+    parameters = ''
+    for key in data:
+        parameters += f'{key}={data[key]}&'
+
+    url = 'http://gateway-api:6543/getprice?' + parameters
     return await get_response(url)

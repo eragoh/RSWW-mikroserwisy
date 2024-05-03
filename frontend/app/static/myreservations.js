@@ -9,13 +9,8 @@ export default {
     },
     methods: {
       async load() {
-        //const url = '/getmytours/'
-        //this.tours = await (await fetch(url)).json();
-        this.toursdata = [
-          { name: '66329371bf2245d456ab3a2d', paid: false, price: 0},
-          { name: '66329371bf2245d456ab3a2c', paid: true, price: 9.99},
-          // Dodaj więcej elementów wycieczki według potrzeb
-        ];
+        const toursurl = '/getmytours/'
+        this.toursdata = await (await fetch(toursurl)).json();
         for(const tour of this.toursdata){
             const url = '/tours/' + tour.name + '/get/'
             const response = await (await fetch(url)).json();

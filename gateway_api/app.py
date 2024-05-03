@@ -55,6 +55,30 @@ def get_price(offer):
 def hello_world():
     return 'Hello, Gateway!'
 
+@app.route('/getprice/')
+def getprice():
+    sum = 0
+    room = request.args.get('room')
+    price = float(request.args.get('price'))
+    if room == 'Apartament':
+        price += 900
+    elif room == 'Rodzinny':
+        price += 200
+    elif room == 'Standardowy':
+        price += 400
+    elif room == 'Studio':
+        price += 0
+
+    data = {}
+    for arg in ('adults', 'ch3', 'ch10', 'ch18'):
+        data[arg] = int(request.args.get(arg))
+
+    sum += data['adults'] * price
+    sum += data['ch3'] * price * 0.5
+    sum += data['ch10'] * price * 0.7
+    sum += data['ch18'] * price * 0.8   
+    return jsonify({'price' : sum})
+
 @app.route('/data/countries')
 def get_countries():
     some_data = mongo.db.travelOffers.distinct("country")
