@@ -1,1 +1,1 @@
-aio_pika
+pika

@@ -3,11 +3,11 @@ import pika
 
 credentials = pika.PlainCredentials('admin', 'password')
 connection = pika.BlockingConnection(
-    pika.ConnectionParameters(host='172.18.0.5', credentials=credentials))
+    pika.ConnectionParameters(host='rabbitmq-gateway', credentials=credentials))
 
 channel = connection.channel()
 
-channel.queue_declare(queue='rpc_queue')
+channel.queue_declare(queue='rpc_queue', durable=True)
 
 def fib(n):
     if n == 0:

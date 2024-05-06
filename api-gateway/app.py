@@ -55,7 +55,7 @@ channels = (
 )
 
 for channel, qname, func in channels:
-    channel.queue_declare(queue=qname)
+    channel.queue_declare(queue=qname, durable=True)
     channel.basic_qos(prefetch_count=1)
     channel.basic_consume(queue=qname, on_message_callback=func)
     

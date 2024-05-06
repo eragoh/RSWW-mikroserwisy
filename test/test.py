@@ -17,8 +17,8 @@ def publish_purchase_event(event):
     channel = connection.channel()
 
     # Ensure the queues exist
-    channel.queue_declare(queue='event_queue')
-    channel.queue_declare(queue='result_queue')
+    channel.queue_declare(queue='event_queue', durable=True)
+    channel.queue_declare(queue='result_queue', durable=True)
 
     # Publish the event to the event queue
     channel.basic_publish(exchange='', routing_key='event_queue', body=json.dumps(event))
@@ -31,7 +31,7 @@ def listen_for_results():
     channel = connection.channel()
 
     # Declare or assert the queue
-    channel.queue_declare(queue='result_queue')
+    channel.queue_declare(queue='result_queue', durable=True)
 
     # Callback to handle messages
     def callback(ch, method, properties, body):

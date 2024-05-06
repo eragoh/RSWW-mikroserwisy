@@ -21,6 +21,8 @@ services:
     build: ./gateway_api
     depends_on:
       - travel-mongo
+      - rabbitmq-gateway
+      - redis
     environment:
       - FLASK_APP=app.py
       - FLASK_RUN_HOST=0.0.0.0
@@ -50,12 +52,18 @@ services:
   api-gateway:
     container_name: api-gateway
     build: ./api-gateway
+    depends_on:
+      - travel-mongo
+      - rabbitmq-gateway
     networks:
       - backend-network
     
   payment_service:
     container_name: payment-service
     build: ./microservices/payment
+    depends_on:
+      - travel-mongo
+      - rabbitmq-gateway
     environment:
       - FLASK_APP=app.py
     networks:
@@ -64,6 +72,9 @@ services:
   reservation_service:
     container_name: reservation_service
     build: ./microservices/reservation
+    depends_on:
+      - travel-mongo
+      - rabbitmq-gateway
     environment:
       - FLASK_APP=app.py
     networks:

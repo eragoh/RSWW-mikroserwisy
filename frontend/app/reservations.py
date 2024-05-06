@@ -2,7 +2,7 @@ from flask import Blueprint, request, render_template, jsonify
 import asyncio
 import json
 from flask_login import login_required, current_user
-from api import get_response
+from api import get_response, post_response
 
 async def arender(html, data):
     task = asyncio.to_thread(render_template, html, data=data)
@@ -24,7 +24,7 @@ async def buy(tourname):
             'price': price
         }
         
-        response = await get_response(f'http://gateway-api:6543/reservation/pay/', payment_data)
+        response = await post_response(f'http://gateway-api:6543/reservation/pay/', payment_data)
         
         if "error" in response:
             return jsonify(response), 400

@@ -12,12 +12,21 @@ docker-compose up -d --build
 docker exec -it travel-mongo bash
 mongoimport --uri "mongodb://user:password@travel-mongo:27017/TravelDB" --collection travelOffers --type json --file /var/my-db/travel-offers.json --jsonArray
 
+## jeśli nie działa
+db.getUsers()    // żeby sprawdzić czy się stworzył user
+docker logs travel-mongo // żeby sprawdzić czy mongo-init.js się wykonał
+chmod 644 ./travelDB-mongoDB/init-scripts/mongo-init.js
+
+
 ## 3. działanie bazy danych:
 
 docker run -it --rm --network backend-network mongo mongosh --host travel-mongo -u mongoadmin -p secret --authenticationDatabase admin TravelDB
 show collections
 db.travelOffers.find().pretty();
 
+
+
+### docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' rabbitmq-gateway
 
 ## 4. działanie GATEWAY API:
 

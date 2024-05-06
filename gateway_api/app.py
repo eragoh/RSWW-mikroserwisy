@@ -18,12 +18,16 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 stream_handler = logging.StreamHandler(sys.stdout)
 stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
+RABBIT_HOST = 'rabbitmq-gateway'
 
 
 app = Flask(__name__)
 app.config["MONGO_URI"] = "mongodb://user:password@travel-mongo:27017/TravelDB"
 redis_client = redis.StrictRedis(host='redis-service', port=6379, db=0)
-rabbit_connection_params = pika.ConnectionParameters('rabbitmq-gateway', credentials=pika.PlainCredentials('admin', 'password'))
+rabbit_connection_params = pika.ConnectionParameters(
+    RABBIT_HOST,
+    port=5672,
+    credentials=pika.PlainCredentials('admin', 'password'))
 
 mongo = PyMongo(app)
 
@@ -31,18 +35,25 @@ reservations = {}
 
 # Listen for responses from RabbitMQ
 def listen_for_results():
-    connection = pika.BlockingConnection(rabbit_connection_params)
-    channel = connection.channel()
-    channel.queue_declare(queue='result_queue')
+    logger.info("i ASD 0")
+    logger.error("e ASD 0")
+    logger.debug("d ASD 0")
+    try:
+        connection = pika.BlockingConnection(rabbit_connection_params)
+        channel = connection.channel()
+        channel.queue_declare(queue='result_queue', durable=True)
 
-    def callback(ch, method, properties, body):
-        result = json.loads(body)
-        event_id = result['event_id']
-        redis_client.set(event_id, body)
+        def callback(ch, method, properties, body):
+            result = json.loads(body)
+            event_id = result['event_id']
+            redis_client.set(event_id, body)
 
-    channel.basic_consume(queue='result_queue', on_message_callback=callback, auto_ack=True)
-    channel.start_consuming()
+        channel.basic_consume(queue='result_queue', on_message_callback=callback, auto_ack=True)
+        channel.start_consuming()
 
+    except Exception as e:
+        logging.error(f"Failed to connect to RabbitMQ: {e}")
+    
 # Start a separate thread to listen for results
 listener_thread = threading.Thread(target=listen_for_results)
 listener_thread.daemon = True
@@ -58,20 +69,67 @@ async def get_response_from_redis(event_id):
         await asyncio.sleep(1)  # Delay before checking again
 
 # Publish a purchase event directly to RabbitMQ
-def publish_event_to_queue(event, queue):
+# def publish_event_to_queue(event, queue):
+#     connection = pika.BlockingConnection(rabbit_connection_params)
+#     channel = connection.channel()
+#     channel.queue_declare(queue=queue, durable=True)
+#     channel.queue_declare(queue='result_queue', durable=True)
+
+#     channel.basic_publish(exchange='', routing_key=queue, body=json.dumps(event))
+#     connection.close()
+        
+
+def setup_topic_exchange_and_queues(exchange_name='order'):
     connection = pika.BlockingConnection(rabbit_connection_params)
     channel = connection.channel()
-    channel.queue_declare(queue=queue)
-    channel.queue_declare(queue='result_queue')
+    channel.exchange_declare(exchange=exchange_name, exchange_type='topic', durable=True)
 
-    channel.basic_publish(exchange='', routing_key=queue, body=json.dumps(event))
+    # Declare queues and bind with routing keys based on patterns
+    queues = {
+        'result_queue': ['result', 'reservation_paid'],
+        'reservation_queue': ['reservation_add', 'reservation_info', 'reservation_paid'],
+        'payment_queue': ['payment']
+    }
+
+    for queue, routing_keys in queues.items():
+        channel.queue_declare(queue=queue, durable=True)
+        if isinstance(routing_keys, list):
+            for routing_key in routing_keys:
+                channel.queue_bind(exchange=exchange_name, queue=queue, routing_key=routing_key)
+        else:
+            channel.queue_bind(exchange=exchange_name, queue=queue, routing_key=routing_keys)
+
+
+
+    # # Publish test messages to each queue
+    # test_messages = {
+    #     'result_queue': {'message': 'Result test'},
+    #     'reserve_queue': {'message': 'Reservation test'},
+    #     'pay_queue': {'message': 'Payment test'}
+    # }
+    # for queue, message in test_messages.items():
+    #     channel.basic_publish(exchange=exchange_name, routing_key=queues[queue], body=json.dumps(message))
+
+    # # Checking if messages are correctly routed
+    # for queue, _ in queues.items():
+    #     method_frame, header_frame, body = channel.basic_get(queue=queue, auto_ack=True)
+    #     if method_frame:
+    #         logger.info(f"Message from {queue}: {json.loads(body)}")
+    #     else:
+    #         logger.info(f"No message received in {queue}")
+
+
+
     connection.close()
 
-def build_response(response_event):
-    event_id = response_event.pop('event_id', None)
-    return_code = response_event.pop('return_code', None)
-    # http_status = return_code if return_code else 500  # Default to 500 if no code is provided
-    return jsonify(response_event)
+
+def publish_topic_event(event, routing_key, exchange_name='order'):
+    connection = pika.BlockingConnection(rabbit_connection_params)
+    channel = connection.channel()
+    channel.basic_publish(exchange=exchange_name, routing_key=routing_key, body=json.dumps(event))
+    logger.info(f"PUBLISHED: {event} // KEY: {routing_key}")
+    connection.close()
+
 
 def get_seasonal_factor(month):
     if month in [6, 7, 8]:  # Summer
@@ -255,53 +313,29 @@ async def add_reservation():
         'price': price
     }
 
-    logger.info("PUBLISH: %s", event_id)
-    publish_event_to_queue(event, 'reservation_queue')
+    logger.info("PUBLISH RESERVATION: %s", event_id)
+    #publish_event_to_queue(event, 'reservation_queue')
+    publish_topic_event(event, 'reservation_add')
 
     logger.info("WAITING")
     try:
-        logger.info(f"RESPONSE 1")
         response_event = await asyncio.wait_for(get_response_from_redis(event_id), timeout=10000)
-        logger.info(f"RESPONSE 2 {response_event}")
     except asyncio.TimeoutError as e:
         logger.info(f"ERROR: {e}")
         return jsonify({'error': f'Timeout while waiting for response: {e}'})
 
-
-    logger.info(f"RESPONSE 3 {response_event}")
     response_event.pop('event_id', None)
-    logger.info(f"RESPONSE 4 {response_event}")
+    logger.info(f"RESPONSE: {response_event}")
     return response_event
-
-# @app.route('/reservation/add/', methods=['POST'])
-# def add_reservation():
-#     username = request.form.get('username')
-#     trip_id = request.form.get('trip_id')
-#     price = request.form.get('price')
-
-#     reservation_data = {
-#         'username': username,
-#         'trip_id': trip_id,
-#         'price': price
-#     }
-
-#     response = requests.post("http://reservation-service:5674/reservation/add", data=reservation_data)
-
-#     if response.status_code != 201:
-#         return jsonify({"error": "Failed to add reservation"}), response.status_code
-
-#     return jsonify(response.json()), 201
-
 
 
 @app.route('/reservation/pay/', methods=['POST'])
 async def pay_reservation():
+    logger.info("RESERV-PAY")
     trip_id = request.form.get('trip_id')
     card_number = request.form.get('card_number')
     price = request.form.get('price')
-
     event_id = str(uuid.uuid4())
-
     event = {
         'event_id': event_id,
         'trip_id': trip_id,
@@ -309,14 +343,20 @@ async def pay_reservation():
         'price': price
     }
 
-    publish_event_to_queue(event, 'reservation_queue')
+    logger.info("PUBLISH PAYMENT: %s", event_id)
+    #publish_event_to_queue(event, 'reservation_queue')
+    publish_topic_event(event, 'payment')
 
+    logger.info("WAITING")
     try:
         response_event = await asyncio.wait_for(get_response_from_redis(event_id), timeout=10000)
-    except asyncio.TimeoutError:
-        return jsonify({'error': 'Timeout while waiting for response'}), 500
+    except asyncio.TimeoutError as e:
+        logger.info(f"ERROR: {e}")
+        return jsonify({'error': f'Timeout while waiting for response: {e}'})
 
-    return build_response(response_event)
+    response_event.pop('event_id', None)
+    logger.info(f"RESPONSE: {response_event}")
+    return response_event
 
 
 # @app.route('/reservation/pay/', methods=['POST'])
@@ -338,6 +378,7 @@ async def pay_reservation():
 
 #     return jsonify(response.json()), response.status_code
 
-if __name__ == '__main__':
-    app.logger.addHandler(stream_handler)
-    app.run(debug=True, host='0.0.0.0')
+logger.debug(f"NAME: %s", __name__)
+logger.info(f"ASD 1")
+setup_topic_exchange_and_queues()
+logger.info(f"ASD 2")

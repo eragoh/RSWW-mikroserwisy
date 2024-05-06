@@ -14,6 +14,18 @@ async def get_response(url):
         return {'error': f'Bad request - {e}'}
     return {'error': 'Bad request'}
 
+async def post_response(url, data):
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, data=data) as response:
+                if response.status == 200:
+                    json_data = await response.json()
+                    logger.info(f"RESPONSE POST 55: {json_data}")
+                    return json_data
+    except aiohttp.ClientError as e:
+        return {'error': f'Bad request - {e}'}
+    return {'error': 'Bad request'}
+
 api = Blueprint('api', __name__)
 
 @api.route('/getcountries/')

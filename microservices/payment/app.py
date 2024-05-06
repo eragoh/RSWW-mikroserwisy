@@ -1,56 +1,75 @@
-import asyncio
-import aio_pika
-import uuid
+import pika
 import json
 import random
+import logging
+import time
+import sys
 
-# Setup connection to RabbitMQ
-async def get_rabbit_connection():
-    return await aio_pika.connect_robust(
-        "amqp://admin:password@rabbitmq-gateway/"
-    )
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+stream_handler = logging.StreamHandler(sys.stdout)
+stream_handler.setFormatter(formatter)
+logger.addHandler(stream_handler)
 
-async def send_payment_event(trip_id, payment_success):
-    """Send the payment event to the RabbitMQ using aio_pika."""
-    connection = await get_rabbit_connection()
-    async with connection:
-        channel = await connection.channel()  # Creating a channel
-        await channel.declare_queue('result_queue')
-        await channel.declare_queue('reservation_queue')
+rabbit_connection_params = pika.ConnectionParameters(
+    'rabbitmq-gateway',
+    port=5672,
+    credentials=pika.PlainCredentials('admin', 'password'))
 
-        payment_info = {'trip_id': trip_id, 'success': payment_success, 'event_id': str(uuid.uuid4())}
-        await channel.default_exchange.publish(
-            aio_pika.Message(body=json.dumps(payment_info).encode()),
-            routing_key='result_queue'
-        )
-        await channel.default_exchange.publish(
-            aio_pika.Message(body=json.dumps(payment_info).encode()),
-            routing_key='reservation_queue'
-        )
+def get_rabbit_connection():
+    return pika.BlockingConnection(rabbit_connection_params)
 
-async def process_payment(payment_info):
-    """Process the payment asynchronously."""
-    await asyncio.sleep(3)  # Simulate processing time
+def publish_topic_event(rabbit_connection, event, routing_key, exchange_name='order'):
+    channel = rabbit_connection.channel()
+    channel.exchange_declare(exchange=exchange_name, exchange_type='topic', durable=True)
+    channel.basic_publish(exchange=exchange_name, routing_key=routing_key, body=json.dumps(event))
+    logger.info(f"PUBLISHED: {event} // KEY: {routing_key}")
+    channel.close()
+
+def process_payment(payment_info):
+    """Process the payment synchronously."""
+    time.sleep(3)  # Simulate processing time
     payment_success = random.choice([True, False])
-    await send_payment_event(payment_info['trip_id'], payment_success)
+    return payment_success
 
-async def handle_payment_request(message: aio_pika.IncomingMessage):
-    async with message.process():
-        payment_info = json.loads(message.body)
-        await process_payment(payment_info)
+def handle_payment_request(ch, method, properties, body):
+    payment_info = json.loads(body)
+    rabbit_conn = get_rabbit_connection()
 
-async def listen_to_rabbitmq():
-    """Setup and start listening on the RabbitMQ queue."""
-    connection = await get_rabbit_connection()
-    async with connection:
-        channel = await connection.channel()
-        await channel.declare_queue('payment_queue')
-        queue = await channel.declare_queue('payment_queue')
-        
-        async with queue.iterator() as queue_iter:
-            async for message in queue_iter:
-                async with message.process():
-                    await handle_payment_request(message)
+    if 'reserved' in payment_info.keys() and payment_info['reserved'] == 'true':
+        payment_info.pop('reserved', None)
+        result = process_payment(payment_info)
+        payment_info['result'] = 'success' if result else 'failure'
+        publish_topic_event(rabbit_conn, payment_info, 'reservation_paid')
+    else:
+        payment_info['reserved'] = 'false'
+        publish_topic_event(rabbit_conn, payment_info, 'reservation_info')
+    
+    rabbit_conn.close()
+
+def listen_to_rabbitmq():
+    rabbit_connection = get_rabbit_connection()
+    channel = rabbit_connection.channel()
+    payment_queue = channel.queue_declare(queue='payment_queue', durable=True).method.queue
+    logger.info("Listening...")
+    
+    def callback(ch, method, properties, body):
+        routing_key = method.routing_key
+        if routing_key == 'payment':
+            handle_payment_request(ch, method, properties, body)
+        # Continue consuming messages
+        ch.basic_ack(delivery_tag=method.delivery_tag)
+
+    channel.basic_consume(queue=payment_queue, on_message_callback=callback)
+    
+    # Start consuming messages in a loop
+    try:
+        channel.start_consuming()
+    except KeyboardInterrupt:
+        logger.info("Stopping...")
+        channel.stop_consuming()
+        rabbit_connection.close()
 
 if __name__ == '__main__':
-    asyncio.run(listen_to_rabbitmq())
+    listen_to_rabbitmq()
