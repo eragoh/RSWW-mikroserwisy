@@ -8,6 +8,20 @@
 {% endblock %}
 
 {% block body %}
+<style>
+    .loading-animation {
+      display: flex;
+      justify-content: center; /* Centralizuje zawartość poziomo */
+      align-items: center; /* Centralizuje zawartość wertykalnie */
+      height: 100vh; /* Wysokość równa wysokości ekranu */
+    }
+    
+    .loading-animation img {
+      max-width: 100%; /* Maksymalna szerokość obrazka to szerokość jego kontenera */
+      max-height: 100%; /* Maksymalna wysokość obrazka to wysokość jego kontenera */
+    }
+</style>
+
 <div class="container mt-3">
     <h1>Moje rezerwacje</h1>
 </div>

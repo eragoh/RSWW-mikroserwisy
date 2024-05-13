@@ -3,43 +3,54 @@ export default{
     components: {},
     data() {
     return {
-        tour: null
+        tour: null,
+        rooms: '',
     }
 },
     methods: {
         load: async function(){
             const url = window.location.href + 'get/';
             this.tour = await (await fetch(url)).json();
+            
+            var rooms_table = await (await fetch(window.location.href + 'reserved_rooms/')).json();
+            var dict = {
+                'Standardowy' : true,
+                'Apartament' : true,
+                'Studio' : true,
+                'Rodzinny' : true,
+            };
+            for(var r in rooms_table['results']){
+                dict[rooms_table['results'][r]] = false;
+            }
+
+            if(this.tour.room.is_standard && dict['Standardowy']){
+                this.rooms += '<span>Pokój standardowy</span>';
+            }
+            if(this.tour.room.is_apartment && dict['Apartament']){
+                if(this.rooms !== ''){
+                    this.rooms += '<span class="text-primary"> • </span>';
+                }
+                this.rooms += '<span>Apartament</span>';
+            }
+            if(this.tour.room.is_studio && dict['Studio']){
+                if(this.rooms !== ''){
+                    this.rooms += '<span class="text-primary"> • </span>';
+                }
+                this.rooms += '<span>Studio</span>';
+            }
+            if(this.tour.room.is_family && dict['Rodzinny']){
+                if(this.rooms !== ''){
+                    this.rooms += '<span class="text-primary"> • </span>';
+                }
+                this.rooms += '<span>Pokój rodzinny</span>';
+            }
+            if(this.rooms == ''){
+                this.rooms = 'Brak wolnych pokoji.';
+            }
         },
         redirectToReservation(url) {
             window.location.href += 'buy/';
         },
-        roomsf: function(t){
-            var rooms = ''
-            if(t.is_standard){
-                rooms += '<span>Pokój standardowy</span>';
-            }
-            if(t.is_family){
-                if(rooms !== ''){
-                    rooms += '<span class="text-primary"> • </span>';
-                }
-                rooms += '<span>Pokój rodzinny</span>';
-            }
-            if(t.is_apartment){
-                if(rooms !== ''){
-                    rooms += '<span class="text-primary"> • </span>';
-                }
-                rooms += '<span>Apartament</span>';
-            }
-            if(t.is_studio){
-                if(rooms !== ''){
-                    rooms += '<span class="text-primary"> • </span>';
-                }
-                rooms += '<span>Studio</span>';
-            }
-            return rooms;
-        }
-        
     },
     computed: {},
     mounted() {
@@ -70,7 +81,7 @@ export default{
                 <i class="bi bi-airplane"></i> {{tour.departure_location}}<br />
                 <div style="display: inline-flex; align-items: center;">
                     <i class="bi bi-houses"></i>
-                    <div style="margin-left: 8px;" class="mb-2 text-muted small" v-html="roomsf(tour.room)"></div>
+                    <div style="margin-left: 8px;" class="mb-2 text-muted small" v-html="rooms"></div>
                 </div>
             </div>
         </div>

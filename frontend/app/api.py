@@ -38,6 +38,11 @@ async def tour_detail(tourname):
     #return await get_rmq_response('data_tour')
     return await get_response(f'http://gateway-api:6543/data/tours/{tourname}')
 
+@api.route('/tours/<tourname>/reserved_rooms/')
+async def reserved_rooms(tourname):
+    #return await get_rmq_response('data_tour')
+    return await get_response(f'http://gateway-api:6543/data/reserved_rooms/{tourname}')
+
 @api.route('/gettours/')
 async def gettours():
     page_number = request.args.get('page')
@@ -59,14 +64,6 @@ async def toursparameters():
 async def oneminute_clock(tourname):
     url = f'http://gateway-api:6543/clock/{tourname}'
     return await get_response(url)
-
-@api.route('/getmytours/')
-async def getmytours():
-    tours = [
-        { "name": '66329371bf2245d456ab3a2d', "paid": False, "price": 0},
-        { "name": '66329371bf2245d456ab3a2c', "paid": True, "price": 9.99},
-    ]
-    return jsonify(tours)
 
 @api.route('/getprice/')
 async def getprice():

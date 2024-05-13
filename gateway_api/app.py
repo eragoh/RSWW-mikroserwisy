@@ -87,7 +87,13 @@ def setup_topic_exchange_and_queues(exchange_name='order'):
     # Declare queues and bind with routing keys based on patterns
     queues = {
         'result_queue': ['result', 'reservation_paid'],
-        'reservation_queue': ['reservation_add', 'reservation_info', 'reservation_paid'],
+        'reservation_queue': [
+            'reservation_add',
+            'reservation_info',
+            'reservation_paid',
+            'myreservations',
+            'reserved_rooms',
+        ],
         'payment_queue': ['payment']
     }
 
@@ -204,6 +210,31 @@ def get_countries():
     some_data = mongo.db.travelOffers.distinct("country")
     return Response(json_util.dumps(some_data), mimetype='application/json')
 
+@app.route('/data/reserved_rooms/<tour>')
+async def get_tour_reserved_rooms(tour):
+    event_id = str(uuid.uuid4())
+    event = {
+        'event_id': event_id,
+        'trip_id': tour,
+
+    }
+
+    logger.info("CHECK RESERVED ROOMS FROM (%s) - %s", tour, event_id)
+    #publish_event_to_queue(event, 'reservation_queue')
+    publish_topic_event(event, 'reserved_rooms')
+
+    logger.info("WAITING")
+    try:
+        response_event = await asyncio.wait_for(get_response_from_redis(event_id), timeout=10000)
+    except asyncio.TimeoutError as e:
+        logger.info(f"ERROR: {e}")
+        return jsonify({'error': f'Timeout while waiting for response: {e}'})
+
+    response_event.pop('event_id', None)
+    logger.info(f"RESPONSE[get_tour_reserved_rooms]: {response_event}")
+    return response_event
+
+
 @app.route('/data/tours/<tour>')
 def get_data_tour(tour):
     try:
@@ -305,12 +336,22 @@ async def add_reservation():
     username = request.args.get('username')
     trip_id = request.args.get('trip_id')
     price = request.args.get('price')
+    room = request.args.get('room')
+    adults  = request.args.get('adults')
+    ch3  = request.args.get('ch3')
+    ch10 = request.args.get('ch10')
+    ch18 = request.args.get('ch18')
     event_id = str(uuid.uuid4())
     event = {
         'event_id': event_id,
         'username': username,
         'trip_id': trip_id,
-        'price': price
+        'price': price,
+        'room': room,
+        'adults': adults,
+        'ch3': ch3,
+        'ch10': ch10,
+        'ch18': ch18,
     }
 
     logger.info("PUBLISH RESERVATION: %s", event_id)
@@ -335,12 +376,14 @@ async def pay_reservation():
     trip_id = request.form.get('trip_id')
     card_number = request.form.get('card_number')
     price = request.form.get('price')
+    room = request.form.get('room')
     event_id = str(uuid.uuid4())
     event = {
         'event_id': event_id,
         'trip_id': trip_id,
         'card_number': card_number,
-        'price': price
+        'price': price,
+        'room': room
     }
 
     logger.info("PUBLISH PAYMENT: %s", event_id)
@@ -358,7 +401,45 @@ async def pay_reservation():
     logger.info(f"RESPONSE: {response_event}")
     return response_event
 
+@app.route('/getmytours/')
+async def getmytours():
+    username = request.args.get('username')
+    event_id = str(uuid.uuid4())
+    event = {
+        'event_id': event_id,
+        'username': username
+    }
+    logger.info("PUBLISH getmytours: %s", event_id)
+    publish_topic_event(event, 'myreservations')
+    logger.info("WAITING")
+    try:
+        response_event = await asyncio.wait_for(get_response_from_redis(event_id), timeout=10000)
+    except asyncio.TimeoutError as e:
+        logger.info(f"ERROR: {e}")
+        return jsonify({'error': f'Timeout while waiting for response: {e}'})
+    logger.info(f"RESPONSE: {response_event}")
+    
+    #event jakis tam event, ktory zwraca rezerwacje klienta
 
+    tours = [
+        {
+            'name':   result[2],
+            'price':  result[3],
+            'room':   result[4],
+            'paid':   result[5],
+            'adults': result[6],
+            'ch3':    result[7],
+            'ch10':   result[8],
+            'ch18':   result[9],
+        }
+        for result in response_event['results']
+    ]
+    logger.info(f"RESPONSE TOURS: {tours}")
+    # tours = [
+    #     { "name": '663a2114bda936e962f8f4c0', "paid": False, "price": 0},
+    #     { "name": '663a2114bda936e962f8f4c1', "paid": True, "price": 9.99},
+    # ]
+    return jsonify(tours)
 # @app.route('/reservation/pay/', methods=['POST'])
 # def pay_reservation():
 #     trip_id = request.form.get('trip_id')

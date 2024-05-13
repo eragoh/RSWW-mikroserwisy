@@ -5,6 +5,7 @@ export default {
       return {
         toursdata: [],
         tours: [],
+        loading: true,
       }
     },
     methods: {
@@ -14,43 +15,52 @@ export default {
         for(const tour of this.toursdata){
             const url = '/tours/' + tour.name + '/get/'
             const response = await (await fetch(url)).json();
-            this.tours.push({ response, paid: tour.paid, price: tour.price});
+            this.tours.push({
+                response,
+                paid: tour.paid,
+                price: tour.price,
+                room: tour.room,
+                adults: tour.adults,
+                ch3: tour.ch3,
+                ch10: tour.ch18,
+                ch18: tour.ch10,
+            });
         }
+        this.loading = false;
       },
       redirectToReservation(url) {
         window.location.href = '/tours/' + url + '/buy/';
       },
       roomsf: function(t){
-        var rooms = ''
-        if(t.is_standard){
-            rooms += '<span>Pokój standardowy</span>';
-        }
-        if(t.is_family){
-            if(rooms !== ''){
-                rooms += '<span class="text-primary"> • </span>';
-            }
-            rooms += '<span>Pokój rodzinny</span>';
-        }
-        if(t.is_apartment){
-            if(rooms !== ''){
-                rooms += '<span class="text-primary"> • </span>';
-            }
-            rooms += '<span>Apartament</span>';
-        }
-        if(t.is_studio){
-            if(rooms !== ''){
-                rooms += '<span class="text-primary"> • </span>';
-            }
-            rooms += '<span>Studio</span>';
-        }
-        return rooms;
+        return t.room;
       },        
+      who: function(t){
+        var res = '<table>';
+        res += '<tr><td>Dorośli:</td><td>' + t.adults + '</td></tr>';
+        if(t.ch3 > 0){
+            res += '<tr><td>Dzieci do lat 3:</td><td>' + t.ch3 + '</td></tr>';
+        }
+        if(t.ch10 > 0){
+            res += '<tr><td>Dzieci do lat 10:</td><td>' + t.ch10 + '</td></tr>';
+        }
+        if(t.ch18 > 0){
+            res += '<tr><td>Dzieci do lat 18:</td><td>' + t.ch18 + '</td></tr>';
+        }
+        res += '</table>';
+        return res;
+      }           
     },
     computed: {},
     mounted() {
       this.load();
     },
     template: /*html*/`
+
+    <div v-if="loading" class="loading-animation container">
+        <img src="/static/loading.gif" alt="loading animation">
+    </div>
+
+
     <div class="row justify-content-center mb-3" v-if="tours" v-for="tour in tours">
         <div class="col-md-12 col-xl-10">
             <div class="card shadow-0 border rounded-3">
@@ -82,7 +92,7 @@ export default {
                                 <i class="bi bi-airplane"></i> {{tour.response.departure_location}}<br />
                                 <div style="display: inline-flex; align-items: center;">
                                     <i class="bi bi-houses"></i>
-                                    <div style="margin-left: 8px;" class="mb-2 text-muted small" v-html="roomsf(tour.response.room)"></div>
+                                    <div style="margin-left: 8px;" class="mb-2 text-muted small" v-html="roomsf(tour)"></div>
                                 </div>
                             </div>
                             <p class="text-truncate mb-4 mb-md-0">
@@ -105,6 +115,7 @@ export default {
                                     </button>
                                 </div>
                             </div>
+                            <div class="d-flex flex-row align-items-center mb-1" v-html="who(tour)"></div>
                         </div>
                     </div>
                 </div>
