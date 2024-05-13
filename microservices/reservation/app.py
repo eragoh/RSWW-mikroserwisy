@@ -225,11 +225,11 @@ def handle_myreservations(channel, method, properties, body):
             cursor.close()
         connection.close()
     
-def handle_check_reservation(channel, method, properties, body):
+def handle_check_rooms_reservation(channel, method, properties, body):
     reservation_info = json.loads(body)
     event_id = reservation_info['event_id']
     trip_id = reservation_info['trip_id']
-    logger.info(f'CHECK RESERVATION - {trip_id}')
+    logger.info(f'CHECK ROOMS RESERVATION - {trip_id}')
 
     try:
         connection = get_connection()
@@ -248,6 +248,42 @@ def handle_check_reservation(channel, method, properties, body):
         return_event = {
             'event_id': event_id,
             'results': results
+        }
+        publish_topic_event(rabbit_conn, return_event, 'result')
+
+    except (Exception, psycopg2.DatabaseError) as error:
+        logger.info(f"Błąd podczas sprawdzania dostępnych pokoji: {error}")
+
+    finally:
+        if connection:
+            cursor.close()
+        connection.close()
+    
+def handle_check_reservation(channel, method, properties, body):
+    reservation_info = json.loads(body)
+    event_id = reservation_info['event_id']
+    username = reservation_info['username']
+    trip_id = reservation_info['trip_id']
+    room = reservation_info['room']
+    logger.info(f'CHECK RESERVATION - {trip_id}')
+
+    try:
+        connection = get_connection()
+        cursor = connection.cursor()
+
+        cursor.execute(
+            """
+            SELECT * FROM RESERVATIONS WHERE trip = %s AND username = %s AND room = %s
+            """,
+            (trip_id, username, room)
+        )
+        result = cursor.fetchone()
+        logger.info(f"Znaleziono rezerwację: {result}.")
+    
+        rabbit_conn = get_rabbit_connection()
+        return_event = {
+            'event_id': event_id,
+            'result': result
         }
         publish_topic_event(rabbit_conn, return_event, 'result')
 
@@ -300,6 +336,8 @@ def listen_to_rabbitmq():
         elif routing_key == 'myreservations':
             handle_myreservations(ch, method, properties, body)
         elif routing_key == 'reserved_rooms':
+            handle_check_rooms_reservation(ch, method, properties, body)
+        elif routing_key == 'check_reservation':
             handle_check_reservation(ch, method, properties, body)
         # Continue consuming messages
         ch.basic_ack(delivery_tag=method.delivery_tag)

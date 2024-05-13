@@ -49,9 +49,6 @@ export default {
                 })
             });
             
-            const url_minute = '/tours/' + this.tourid + '/minute/';
-            var clocktimer = await (await fetch(url_minute)).json();
-            this.countdown = clocktimer.clock;
             this.timer = setInterval(() => {
                 if (this.countdown > 0) {
                     this.countdown--;

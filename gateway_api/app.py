@@ -31,8 +31,6 @@ rabbit_connection_params = pika.ConnectionParameters(
 
 mongo = PyMongo(app)
 
-reservations = {}
-
 # Listen for responses from RabbitMQ
 def listen_for_results():
     logger.info("i ASD 0")
@@ -93,6 +91,7 @@ def setup_topic_exchange_and_queues(exchange_name='order'):
             'reservation_paid',
             'myreservations',
             'reserved_rooms',
+            'check_reservation',
         ],
         'payment_queue': ['payment']
     }
@@ -246,21 +245,6 @@ def get_data_tour(tour):
         return jsonify({"error": "No data found"}), 404
     return Response(json_util.dumps(some_data), mimetype='application/json')
 
-@app.route('/clock/<tour>')
-def get_tour_clock(tour):
-    if tour in reservations.keys():
-        clock = (datetime.now() - reservations[tour]).seconds
-        if clock > 60:
-           reservations[tour] = datetime.now()
-           clock = 60
-        else:
-            clock = 60 - clock
-    else:
-        reservations[tour] = datetime.now()
-        clock = 60
-
-    return jsonify({'clock': clock})
-
 @app.route('/data/<page>')
 def get_data_page(page):
     try:
@@ -357,6 +341,33 @@ async def add_reservation():
     logger.info("PUBLISH RESERVATION: %s", event_id)
     #publish_event_to_queue(event, 'reservation_queue')
     publish_topic_event(event, 'reservation_add')
+
+    logger.info("WAITING")
+    try:
+        response_event = await asyncio.wait_for(get_response_from_redis(event_id), timeout=10000)
+    except asyncio.TimeoutError as e:
+        logger.info(f"ERROR: {e}")
+        return jsonify({'error': f'Timeout while waiting for response: {e}'})
+
+    response_event.pop('event_id', None)
+    logger.info(f"RESPONSE: {response_event}")
+    return response_event
+
+@app.route('/reservation/check/')
+async def check_reservation():
+    username = request.args.get('username')
+    trip_id = request.args.get('trip_id')
+    room = request.args.get('room')
+    event_id = str(uuid.uuid4())
+    event = {
+        'event_id': event_id,
+        'username': username,
+        'trip_id': trip_id,
+        'room': room,
+    }
+
+    logger.info("CHECK RESERVATION: %s", event_id)
+    publish_topic_event(event, 'check_reservation')
 
     logger.info("WAITING")
     try:

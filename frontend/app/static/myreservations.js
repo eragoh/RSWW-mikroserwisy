@@ -28,8 +28,12 @@ export default {
         }
         this.loading = false;
       },
-      redirectToReservation(url) {
-        window.location.href = '/tours/' + url + '/buy/';
+      redirectToReservation(t) {
+        if(t.paid){
+            window.location.href = '/tours/' + t.response._id.$oid;
+        }else{
+            window.location.href = '/tours/' + t.response._id.$oid + '/finish_reservation/?room=' + t.room + '&adults=' + t.adults + '&ch3=' + t.ch3 + '&ch10=' + t.ch10 + '&ch18=' + t.ch18 + '&price=' + t.price;    
+        }
       },
       roomsf: function(t){
         return t.room;
@@ -68,13 +72,13 @@ export default {
                     <div class="row">
                         <div class="col-md-12 col-lg-3 col-xl-3 mb-4 mb-lg-0">
                             <div class="bg-image hover-zoom ripple rounded ripple-surface">
-                            <a :href="tour.response._id.$oid"><img :src="tour.response.img" class="w-100" /></a>
+                            <a @click="redirectToReservation(tour)"><img :src="tour.response.img" class="w-100" /></a>
                             </div>
                         </div>
                         <div class="col-md-6 col-lg-6 col-xl-6">
                             <h5>
                                 <i class="bi bi-house"></i> 
-                                <a :href="tour.response._id.$oid" style="text-decoration: none;">&nbsp{{tour.response.hotel}}</a>
+                                <a @click="redirectToReservation(tour)" style="text-decoration: none;">&nbsp{{tour.response.hotel}}</a>
                             </h5>
                             <div class="d-flex flex-row">
                                 <div class="text-danger mb-1 me-2" v-for="star in tour.response.score">
@@ -110,7 +114,7 @@ export default {
                             <div v-else>
                                 <h6 class="text-danger"><i class="bi bi-x"></i> Zakup nieopłacony</h6>
                                 <div class="d-flex flex-column mt-4">                                    
-                                    <button @click="redirectToReservation(tour.response._id.$oid)" data-mdb-button-init data-mdb-ripple-init class="btn btn-outline-primary btn-sm mt-2" type="button">
+                                    <button @click="redirectToReservation(tour)" data-mdb-button-init data-mdb-ripple-init class="btn btn-outline-primary btn-sm mt-2" type="button">
                                         Kup teraz!
                                     </button>
                                 </div>
