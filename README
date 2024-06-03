@@ -2,6 +2,9 @@
 
 docker-compose up -d --build
 
+Run tests::
+docker run --network 180140_backend-network --name 180140_tests 180140_tests
+
 ## 2. mongoimport:
 
 // KOMENDY KTÓRE MOŻNA WPISAĆ JAK SĄ BŁĘDY Z DOSTĘPEM DO BAZY DANYCH:
