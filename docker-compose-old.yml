@@ -1,7 +1,7 @@
 version: '3.8'
 services:
-  travel-mongo:
-    container_name: travel-mongo
+  180140_travel-mongo:
+    container_name: 180140_travel-mongo
     #build: . #
     image: mongo:latest
     restart: always
@@ -16,12 +16,12 @@ services:
     networks:
       - backend-network
       
-  gateway_api:
-    container_name: gateway-api
-    build: ./gateway_api
+  180140_gateway-api:
+    container_name: 180140_gateway-api
+    build: ./180140_gateway-api
     depends_on:
-      - travel-mongo
-      - rabbitmq-gateway
+      - 180140_travel-mongo
+      - 180140_rabbitmq-gateway
       - redis
     environment:
       - FLASK_APP=app.py
@@ -30,7 +30,7 @@ services:
       - backend-network
 
   frontend:
-    container_name: frontend-api
+    container_name: 180140_frontend-api
     build: ./frontend
     ports:
       - "8080:8080"
@@ -40,55 +40,55 @@ services:
     networks:
       - backend-network
 
-  rabbitmq-gateway:
-    container_name: rabbitmq-gateway
-    build: ./rabbitmq-gateway
+  180140_rabbitmq-gateway:
+    container_name: 180140_rabbitmq-gateway
+    build: ./180140_rabbitmq-gateway
     ports:
       - "5672:5672"
       - "15672:15672"
     networks:
       - backend-network
     
-  api-gateway:
-    container_name: api-gateway
-    build: ./api-gateway
+  180140_api-gateway:
+    container_name: 180140_api-gateway
+    build: ./180140_api-gateway
     depends_on:
-      - travel-mongo
-      - rabbitmq-gateway
+      - 180140_travel-mongo
+      - 180140_rabbitmq-gateway
     networks:
       - backend-network
     
   payment_service:
-    container_name: payment-service
+    container_name: 180140_payment-service
     build: ./microservices/payment
     depends_on:
-      - travel-mongo
-      - rabbitmq-gateway
+      - 180140_travel-mongo
+      - 180140_rabbitmq-gateway
     environment:
       - FLASK_APP=app.py
     networks:
       - backend-network
 
-  reservation_service:
-    container_name: reservation_service
+  180140_reservation_service:
+    container_name: 180140_reservation_service
     build: ./microservices/reservation
     depends_on:
-      - travel-mongo
-      - rabbitmq-gateway
+      - 180140_travel-mongo
+      - 180140_rabbitmq-gateway
     environment:
       - FLASK_APP=app.py
     networks:
       - backend-network
 
   postgres_db:
-    container_name: postgres-db-reservations
+    container_name: 180140_postgres-db-reservations
     build:
       context: ./reservations-postgres
     networks:
       - backend-network
 
   redis:
-    container_name: redis-service
+    container_name: 180140_redis-service
     image: redis:latest
     restart: always
     ports:

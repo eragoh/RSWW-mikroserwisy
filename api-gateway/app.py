@@ -5,9 +5,9 @@ import json
 
 credentials = pika.PlainCredentials('admin', 'password')
 connection = pika.BlockingConnection(
-    pika.ConnectionParameters(host='rabbitmq-gateway', credentials=credentials))
+    pika.ConnectionParameters(host='180140_rabbitmq-gateway', credentials=credentials))
 
-db = MongoClient("mongodb://user:password@travel-mongo:27017/TravelDB").TravelDB
+db = MongoClient("mongodb://user:password@180140_travel-mongo:27017/TravelDB").TravelDB
 
 def get_price(old_price):
     # jakis algorytm wyliczajacy cene, na podstawie

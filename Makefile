@@ -1,17 +1,19 @@
 .PHONY: all build
 
+REPO_PREFIX ?= 10.40.71.55:5000/
+
 all: build
 
 build:
-	docker build travelDB-mongoDB/ -t mongo-rsww480 &
-	docker build gateway_api/ -t gateway-api-rsww480 &
-	docker build frontend/ -t frontend-api-rsww480 &
-	docker build rabbitmq-gateway/ -t rabbitmq-gateway-rsww480 &
-	docker build api-gateway/ -t api-gateway-rsww480 &
-	docker build microservices/payment/ -t payment-service-rsww480 &
-	docker build microservices/reservation/ -t reservation-service-rsww480 &
-	docker build microservices/activities/ -t activities-service-rsww480 &
-	docker build reservations-postgres/ -t postgres-db-reservations-rsww480 &
+	docker build travelDB-mongoDB/ -t $(REPO_PREFIX)180140_mongo &
+	docker build gateway-api/ -t $(REPO_PREFIX)180140_gateway-api &
+	docker build frontend/ -t $(REPO_PREFIX)180140_frontend-api &
+	docker build rabbitmq-gateway/ -t $(REPO_PREFIX)180140_rabbitmq-gateway &
+	docker build api-gateway/ -t $(REPO_PREFIX)180140_api-gateway &
+	docker build microservices/payment/ -t $(REPO_PREFIX)180140_payment-service &
+	docker build microservices/reservation/ -t $(REPO_PREFIX)180140_reservation-service &
+	docker build microservices/activities/ -t $(REPO_PREFIX)180140_activities-service &
+	docker build reservations-postgres/ -t $(REPO_PREFIX)180140_postgres-db-reservations &
 	wait
 
 .DEFAULT_GOAL := all

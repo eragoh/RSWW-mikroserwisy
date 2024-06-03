@@ -27,7 +27,7 @@ async def buy(tourname):
             'room': room
         }
         
-        response = await post_response(f'http://gateway-api:6543/reservation/pay/', payment_data)
+        response = await post_response(f'http://180140_gateway-api:6543/reservation/pay/', payment_data)
         if response['result'] == 'failure':
             return await arender('failure.html', {})
         elif response['result'] == 'success':
@@ -40,8 +40,8 @@ async def buy(tourname):
 
     # For GET requests
 
-    #response = await get_response(f'http://gateway-api:6543/reservation/add/?username={current_user.username}&trip_id={tourname}&price={0}')
-    #response = await get_response(f'http://gateway-api:6543/reservation/check/?trip_id={tourname}')
+    #response = await get_response(f'http://180140_gateway-api:6543/reservation/add/?username={current_user.username}&trip_id={tourname}&price={0}')
+    #response = await get_response(f'http://180140_gateway-api:6543/reservation/check/?trip_id={tourname}')
     # response = jsonify({'status': 'RESERVED', 'username': 'user3'})
     # dresponse = json.loads(response)
     # if not dresponse['status'] == 'RESERVED' and not dresponse['username'] == current_user.username:
@@ -71,7 +71,7 @@ async def fbuy(tourname):
             'room': room
         }
         
-        response = await post_response(f'http://gateway-api:6543/reservation/pay/', payment_data)
+        response = await post_response(f'http://180140_gateway-api:6543/reservation/pay/', payment_data)
         if response['result'] == 'failure':
             return await arender('failure.html', {})
         elif response['result'] == 'success':
@@ -83,7 +83,7 @@ async def fbuy(tourname):
         return jsonify(response), 200
 
     room = request.args.get('room')
-    response = await get_response(f'http://gateway-api:6543/reservation/check/?username={current_user.username}&trip_id={tourname}&room={room}')
+    response = await get_response(f'http://180140_gateway-api:6543/reservation/check/?username={current_user.username}&trip_id={tourname}&room={room}')
 
     if response['result']:
         data = {
@@ -123,7 +123,7 @@ async def makereservation():
     ch18 = data.get('ch18')
 
     user = current_user.username
-    response = await get_response(f'http://gateway-api:6543/reservation/add/?username={user}&trip_id={tourid}&price={price}&room={room}&adults={adults}&ch3={ch3}&ch10={ch10}&ch18={ch18}')
+    response = await get_response(f'http://180140_gateway-api:6543/reservation/add/?username={user}&trip_id={tourid}&price={price}&room={room}&adults={adults}&ch3={ch3}&ch10={ch10}&ch18={ch18}')
     logger.info(f'RESPONSE MAKE RESERVATION: {response}')
     return response
     return jsonify({'message': 'Reservation received successfully'})
@@ -131,6 +131,6 @@ async def makereservation():
 @reservations.route('/getmytours/')
 @login_required
 async def getmytours():
-    response = await get_response(f'http://gateway-api:6543/getmytours/?username={current_user.username}')
+    response = await get_response(f'http://180140_gateway-api:6543/getmytours/?username={current_user.username}')
     logger.info(f'MY RESERVATIONS[{current_user.username}] - {response}')
     return response

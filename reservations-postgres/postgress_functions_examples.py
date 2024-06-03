@@ -6,7 +6,7 @@ def get_connection():
         dbname="travel",
         user="postgres",
         password="postgres",
-        host="postgres-db-reservations"
+        host="180140_postgres-db-reservations"
     )
     return connection
 

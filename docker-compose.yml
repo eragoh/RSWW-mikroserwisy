@@ -1,8 +1,8 @@
 version: '3.8'
 services:
-  travel-mongo:
-    container_name: travel-mongo
-    image: mongo-rsww480
+  180140_travel-mongo:
+    container_name: 180140_travel-mongo
+    image: 180140_mongo
     volumes:
       - ./travelDB-mongoDB/travel-offers:/var/my-db
       - ./travelDB-mongoDB/init-scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
@@ -14,12 +14,12 @@ services:
     networks:
       - backend-network
       
-  gateway_api:
-    container_name: gateway-api
-    image: gateway-api-rsww480
+  180140_gateway-api:
+    container_name: 180140_gateway-api
+    image: 180140_gateway-api
     depends_on:
-      - travel-mongo
-      - rabbitmq-gateway
+      - 180140_travel-mongo
+      - 180140_rabbitmq-gateway
       - redis
     environment:
       - FLASK_APP=app.py
@@ -28,8 +28,8 @@ services:
       - backend-network
 
   frontend:
-    container_name: frontend-api
-    image: frontend-api-rsww480
+    container_name: 180140_frontend-api
+    image: 180140_frontend-api
     ports:
       - "8080:8080"
     environment:
@@ -38,65 +38,65 @@ services:
     networks:
       - backend-network
 
-  rabbitmq-gateway:
-    container_name: rabbitmq-gateway
-    image: rabbitmq-gateway-rsww480
+  180140_rabbitmq-gateway:
+    container_name: 180140_rabbitmq-gateway
+    image: 180140_rabbitmq-gateway
     ports:
       - "5672:5672"
       - "15672:15672"
     networks:
       - backend-network
     
-  api-gateway:
-    container_name: api-gateway
-    image: api-gateway-rsww480
+  180140_api-gateway:
+    container_name: 180140_api-gateway
+    image: 180140_api-gateway
     depends_on:
-      - travel-mongo
-      - rabbitmq-gateway
+      - 180140_travel-mongo
+      - 180140_rabbitmq-gateway
     networks:
       - backend-network
     
   payment_service:
-    container_name: payment-service
-    image: payment-service-rsww480
+    container_name: 180140_payment-service
+    image: 180140_payment-service
     depends_on:
-      - travel-mongo
-      - rabbitmq-gateway
+      - 180140_travel-mongo
+      - 180140_rabbitmq-gateway
     environment:
       - FLASK_APP=app.py
     networks:
       - backend-network
 
   activities_service:
-    container_name: activities-service
-    image: activities-service-rsww480
+    container_name: 180140_activities-service
+    image: 180140_activities-service
     depends_on:
-      - travel-mongo
-      - rabbitmq-gateway
+      - 180140_travel-mongo
+      - 180140_rabbitmq-gateway
     environment:
       - FLASK_APP=app.py
     networks:
       - backend-network
 
-  reservation_service:
-    container_name: reservation_service
-    image: reservation-service-rsww480
+  180140_reservation_service:
+    container_name: 180140_reservation_service
+    image: 180140_reservation-service
     depends_on:
-      - travel-mongo
-      - rabbitmq-gateway
+      - 180140_travel-mongo
+      - 180140_rabbitmq-gateway
     environment:
       - FLASK_APP=app.py
     networks:
       - backend-network
 
   postgres_db:
-    container_name: postgres-db-reservations
-    image: postgres-db-reservations-rsww480
+    container_name: 180140_postgres-db-reservations
+    image: 180140_postgres-db-reservations
     networks:
       - backend-network
 
   redis:
-    container_name: redis-service
+    container_name: 180140_redis-service
     image: redis:latest
     ports:
       - "6379:6379"

@@ -9,24 +9,24 @@ docker-compose up -d --build
 // chmod 777 custom-entrypoint.sh -- to aktualnie nie działa w sensie jest wyłączone i nic nie robi
 // chmod 777 mongo-init.js 
 
-docker exec -it travel-mongo bash
-mongoimport --uri "mongodb://user:password@travel-mongo:27017/TravelDB" --collection travelOffers --type json --file /var/my-db/travel-offers.json --jsonArray
+docker exec -it 180140_travel-mongo bash
+mongoimport --uri "mongodb://user:password@180140_travel-mongo:27017/TravelDB" --collection travelOffers --type json --file /var/my-db/travel-offers.json --jsonArray
 
 ## jeśli nie działa
 db.getUsers()    // żeby sprawdzić czy się stworzył user
-docker logs travel-mongo // żeby sprawdzić czy mongo-init.js się wykonał
+docker logs 180140_travel-mongo // żeby sprawdzić czy mongo-init.js się wykonał
 chmod 644 ./travelDB-mongoDB/init-scripts/mongo-init.js
 
 
 ## 3. działanie bazy danych:
 
-docker run -it --rm --network backend-network mongo mongosh --host travel-mongo -u mongoadmin -p secret --authenticationDatabase admin TravelDB
+docker run -it --rm --network backend-network mongo mongosh --host 180140_travel-mongo -u mongoadmin -p secret --authenticationDatabase admin TravelDB
 show collections
 db.travelOffers.find().pretty();
 
 
 
-### docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' rabbitmq-gateway
+### docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 180140_rabbitmq-gateway
 
 ## 4. działanie GATEWAY API:
 
@@ -76,9 +76,9 @@ docker network create backend-network
 
 ## 2. Odpalanie dockera:
 
-docker run -d -v /home/eragoh/Projects/RSWW-mikroserwisy/travelDB-mongoDB:/var/my-db --network backend-network --name travel-mongo -e MONGO_INITDB_ROOT_USERNAME=mongoadmin -e MONGO_INITDB_ROOT_PASSWORD=secret mongo
+docker run -d -v /home/eragoh/Projects/RSWW-mikroserwisy/travelDB-mongoDB:/var/my-db --network backend-network --name 180140_travel-mongo -e MONGO_INITDB_ROOT_USERNAME=mongoadmin -e MONGO_INITDB_ROOT_PASSWORD=secret mongo
 
-docker run -it --rm --network backend-network mongo mongosh --host travel-mongo -u mongoadmin -p secret --authenticationDatabase admin TravelDB
+docker run -it --rm --network backend-network mongo mongosh --host 180140_travel-mongo -u mongoadmin -p secret --authenticationDatabase admin TravelDB
 
 ## 3. W mongosh:
 
@@ -100,12 +100,12 @@ exit
 
 // sudo setenforce 0
 
-docker exec -it travel-mongo bash
-mongoimport --uri "mongodb://user:password@travel-mongo:27017/TravelDB" --collection travelOffers --type json --file /var/my-db/travel-offers.json --jsonArray
+docker exec -it 180140_travel-mongo bash
+mongoimport --uri "mongodb://user:password@180140_travel-mongo:27017/TravelDB" --collection travelOffers --type json --file /var/my-db/travel-offers.json --jsonArray
 
 ## 5. działanie:
 
-docker run -it --rm --network backend-network mongo mongosh --host travel-mongo -u mongoadmin -p secret --authenticationDatabase admin TravelDB
+docker run -it --rm --network backend-network mongo mongosh --host 180140_travel-mongo -u mongoadmin -p secret --authenticationDatabase admin TravelDB
 show collections
 db.travelOffers.find().pretty()
 

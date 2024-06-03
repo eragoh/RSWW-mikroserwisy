@@ -72,7 +72,7 @@ async def tours():
   
 @app.route('/gettoursparameters/',)
 async def toursparameters():
-    url = 'http://gateway-api:6543/data/tours/parameters?'  
+    url = 'http://180140_gateway-api:6543/data/tours/parameters?'  
     parameters = ('country', 'start_date', 'return_date', 'adults', 'children')
     for parameter in parameters:
         arg = request.args.get(parameter)
@@ -88,18 +88,18 @@ async def tours_detail(tourname):
 @app.route('/tours/<tourname>/get/')
 async def tour_detail(tourname):
     #return await get_rmq_response('data_tour')
-    return await get_response(f'http://gateway-api:6543/data/tours/{tourname}')
+    return await get_response(f'http://180140_gateway-api:6543/data/tours/{tourname}')
 
 @app.route('/getcountries/')
 async def getcountries():
     return await get_rmq_response('countries')
-    #return await get_response(f'http://gateway-api:6543/data/countries')
+    #return await get_response(f'http://180140_gateway-api:6543/data/countries')
 
 @app.route('/gettours/')
 async def gettours():
     page_number = request.args.get('page')
     page = int(page_number) if (page_number and page_number.isdigit()) else 1
-    return await get_response(f'http://gateway-api:6543/data/{page - 1}')
+    return await get_response(f'http://180140_gateway-api:6543/data/{page - 1}')
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')

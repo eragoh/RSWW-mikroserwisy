@@ -12,7 +12,7 @@ class RClient:
 
     async def connect(self):
         self.connection = await aio_pika.connect_robust(
-            "amqp://admin:password@rabbitmq-gateway"
+            "amqp://admin:password@180140_rabbitmq-gateway"
         )
         self.channel = await self.connection.channel()
         self.callback_queue = await self.channel.declare_queue(

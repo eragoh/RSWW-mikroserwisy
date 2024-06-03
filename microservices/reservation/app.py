@@ -18,7 +18,7 @@ logger.addHandler(stream_handler)
 
 # Connection parameters for RabbitMQ
 rabbit_connection_params = pika.ConnectionParameters(
-    'rabbitmq-gateway',
+    '180140_rabbitmq-gateway',
     port=5672,
     credentials=pika.PlainCredentials('admin', 'password'))
 
@@ -27,7 +27,7 @@ def get_connection():
         dbname="travel",
         user="postgres",
         password="postgres",
-        host="postgres-db-reservations"
+        host="180140_postgres-db-reservations"
     )
     return connection
 
@@ -172,7 +172,7 @@ def handle_reservation_paid_request(channel, method, properties, body):
             connection.commit()
             logger.info("Rezerwacja została opłacona pomyślnie.")
 
-            mongoclient = MongoClient('mongodb://user:password@travel-mongo:27017/TravelDB')
+            mongoclient = MongoClient('mongodb://user:password@180140_travel-mongo:27017/TravelDB')
             db = mongoclient.get_default_database()
             update_query = {
                 "$set": {

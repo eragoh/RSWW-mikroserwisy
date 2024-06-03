@@ -15,7 +15,7 @@ logger.addHandler(stream_handler)
 WATCH_ACTIVITIES = {}
 
 rabbit_connection_params = pika.ConnectionParameters(
-    'rabbitmq-gateway',
+    '180140_rabbitmq-gateway',
     port=5672,
     credentials=pika.PlainCredentials('admin', 'password'))
 
