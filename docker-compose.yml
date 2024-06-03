@@ -12,7 +12,7 @@ services:
       - MONGO_INITDB_ROOT_PASSWORD=secret
       - MONGO_INITDB_DATABASE=TravelDB
     networks:
-      - backend-network
+      - 180140_backend-network
       
   180140_gateway-api:
     container_name: 180140_gateway-api
@@ -25,7 +25,7 @@ services:
       - FLASK_APP=app.py
       - FLASK_RUN_HOST=0.0.0.0
     networks:
-      - backend-network
+      - 180140_backend-network
 
   frontend:
     container_name: 180140_frontend-api
@@ -36,7 +36,7 @@ services:
       - FLASK_APP=app/app.py
       - FLASK_RUN_HOST=0.0.0.0
     networks:
-      - backend-network
+      - 180140_backend-network
 
   180140_rabbitmq-gateway:
     container_name: 180140_rabbitmq-gateway
@@ -45,7 +45,7 @@ services:
       - "5672:5672"
       - "15672:15672"
     networks:
-      - backend-network
+      - 180140_backend-network
     
   180140_api-gateway:
     container_name: 180140_api-gateway
@@ -54,7 +54,7 @@ services:
       - 180140_travel-mongo
       - 180140_rabbitmq-gateway
     networks:
-      - backend-network
+      - 180140_backend-network
     
   payment_service:
     container_name: 180140_payment-service
@@ -65,7 +65,7 @@ services:
     environment:
       - FLASK_APP=app.py
     networks:
-      - backend-network
+      - 180140_backend-network
 
   activities_service:
     container_name: 180140_activities-service
@@ -76,7 +76,7 @@ services:
     environment:
       - FLASK_APP=app.py
     networks:
-      - backend-network
+      - 180140_backend-network
 
   180140_reservation_service:
     container_name: 180140_reservation_service
@@ -87,13 +87,13 @@ services:
     environment:
       - FLASK_APP=app.py
     networks:
-      - backend-network
+      - 180140_backend-network
 
   postgres_db:
     container_name: 180140_postgres-db-reservations
     image: 180140_postgres-db-reservations
     networks:
-      - backend-network
+      - 180140_backend-network
 
   redis:
     container_name: 180140_redis-service
@@ -101,9 +101,9 @@ services:
     ports:
       - "6379:6379"
     networks:
-      - backend-network
+      - 180140_backend-network
 
 networks:
-  backend-network:
-    name: backend-network
+  180140_backend-network:
+    name: 180140_backend-network
     driver: bridge

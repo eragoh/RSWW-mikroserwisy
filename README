@@ -20,7 +20,7 @@ chmod 644 ./travelDB-mongoDB/init-scripts/mongo-init.js
 
 ## 3. działanie bazy danych:
 
-docker run -it --rm --network backend-network mongo mongosh --host 180140_travel-mongo -u mongoadmin -p secret --authenticationDatabase admin TravelDB
+docker run -it --rm --network 180140_backend-network mongo mongosh --host 180140_travel-mongo -u mongoadmin -p secret --authenticationDatabase admin TravelDB
 show collections
 db.travelOffers.find().pretty();
 
@@ -72,13 +72,13 @@ chmod 777 mongo-init.js
 
 ## 1. tworzenie sieci:
 
-docker network create backend-network
+docker network create 180140_backend-network
 
 ## 2. Odpalanie dockera:
 
-docker run -d -v /home/eragoh/Projects/RSWW-mikroserwisy/travelDB-mongoDB:/var/my-db --network backend-network --name 180140_travel-mongo -e MONGO_INITDB_ROOT_USERNAME=mongoadmin -e MONGO_INITDB_ROOT_PASSWORD=secret mongo
+docker run -d -v /home/eragoh/Projects/RSWW-mikroserwisy/travelDB-mongoDB:/var/my-db --network 180140_backend-network --name 180140_travel-mongo -e MONGO_INITDB_ROOT_USERNAME=mongoadmin -e MONGO_INITDB_ROOT_PASSWORD=secret mongo
 
-docker run -it --rm --network backend-network mongo mongosh --host 180140_travel-mongo -u mongoadmin -p secret --authenticationDatabase admin TravelDB
+docker run -it --rm --network 180140_backend-network mongo mongosh --host 180140_travel-mongo -u mongoadmin -p secret --authenticationDatabase admin TravelDB
 
 ## 3. W mongosh:
 
@@ -105,7 +105,7 @@ mongoimport --uri "mongodb://user:password@180140_travel-mongo:27017/TravelDB" -
 
 ## 5. działanie:
 
-docker run -it --rm --network backend-network mongo mongosh --host 180140_travel-mongo -u mongoadmin -p secret --authenticationDatabase admin TravelDB
+docker run -it --rm --network 180140_backend-network mongo mongosh --host 180140_travel-mongo -u mongoadmin -p secret --authenticationDatabase admin TravelDB
 show collections
 db.travelOffers.find().pretty()
 
