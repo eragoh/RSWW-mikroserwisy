@@ -10,6 +10,7 @@ build:
 	docker build api-gateway/ -t api-gateway-rsww480 &
 	docker build microservices/payment/ -t payment-service-rsww480 &
 	docker build microservices/reservation/ -t reservation-service-rsww480 &
+	docker build microservices/activities/ -t activities-service-rsww480 &
 	docker build reservations-postgres/ -t postgres-db-reservations-rsww480 &
 	wait
 

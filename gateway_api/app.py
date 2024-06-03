@@ -93,6 +93,7 @@ def setup_topic_exchange_and_queues(exchange_name='order'):
             'reserved_rooms',
             'check_reservation',
         ],
+        'watch_queue': ['watch', 'watch_end', 'watch_check'],
         'payment_queue': ['payment']
     }
 
@@ -208,6 +209,63 @@ def getprice():
 def get_countries():
     some_data = mongo.db.travelOffers.distinct("country")
     return Response(json_util.dumps(some_data), mimetype='application/json')
+
+@app.route('/watch/<tourname>')
+async def watch(tourname):
+    event_id = str(uuid.uuid4())
+    event = {
+        'event_id': event_id,
+        'tourname': tourname,
+    }
+    logger.info("WATCH (%s) - %s", tourname, event_id)
+    publish_topic_event(event, 'watch')
+
+    logger.info("WAITING")
+    try:
+        response_event = await asyncio.wait_for(get_response_from_redis(event_id), timeout=10000)
+    except asyncio.TimeoutError as e:
+        logger.info(f"ERROR: {e}")
+        return jsonify({'error': f'Timeout while waiting for response: {e}'})
+    
+    response_event.pop('event_id', None)
+    logger.info(f"RESPONSE[watch]: {response_event}")
+    
+    return response_event
+
+@app.route('/watch_end/<tourname>')
+async def watch_end(tourname):
+    event_id = str(uuid.uuid4())
+    event = {
+        'event_id': event_id,
+        'tourname': tourname,
+    }
+    logger.info("WATCH END (%s) - %s", tourname, event_id)
+    publish_topic_event(event, 'watch_end')
+  
+    return jsonify({'State': 'Ok'})
+
+@app.route('/watch_check/<tourname>')
+async def watch_check(tourname):
+    event_id = str(uuid.uuid4())
+    event = {
+        'event_id': event_id,
+        'tourname': tourname,
+    }
+    logger.info("WATCH END (%s) - %s", tourname, event_id)
+    publish_topic_event(event, 'watch_check')
+  
+    logger.info("WAITING")
+    try:
+        response_event = await asyncio.wait_for(get_response_from_redis(event_id), timeout=10000)
+    except asyncio.TimeoutError as e:
+        logger.info(f"ERROR: {e}")
+        return jsonify({'error': f'Timeout while waiting for response: {e}'})
+    
+    response_event.pop('event_id', None)
+    logger.info(f"RESPONSE[watch_check]: {response_event}")
+    
+    return response_event
+
 
 @app.route('/data/reserved_rooms/<tour>')
 async def get_tour_reserved_rooms(tour):

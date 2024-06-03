@@ -37,6 +37,9 @@ app.register_blueprint(reservations_blueprint)
 from main_pages import mainpages as main_blueprint
 app.register_blueprint(main_blueprint)
 
+from activities import activities as activities_blueprint
+app.register_blueprint(activities_blueprint)
+
 @app.errorhandler(401)
 async def unauthorized(error):
     task = asyncio.to_thread(render_template, 'unauthorized.html')

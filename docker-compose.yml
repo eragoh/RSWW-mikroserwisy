@@ -67,6 +67,17 @@ services:
     networks:
       - backend-network
 
+  activities_service:
+    container_name: activities-service
+    image: activities-service-rsww480
+    depends_on:
+      - travel-mongo
+      - rabbitmq-gateway
+    environment:
+      - FLASK_APP=app.py
+    networks:
+      - backend-network
+
   reservation_service:
     container_name: reservation_service
     image: reservation-service-rsww480

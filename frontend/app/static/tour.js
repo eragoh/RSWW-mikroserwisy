@@ -2,12 +2,34 @@ export default{
     name: 'Tour',
     components: {},
     data() {
-    return {
-        tour: null,
-        rooms: '',
-    }
-},
+        return {
+            tour: null,
+            rooms: '',
+            activity: '',
+        }
+    },
     methods: {
+        get_activity: function(response){
+            var n = response['State']['result'];
+            if(n > 1){
+                this.activity = 
+                `<div class="card text-center">
+                    <div class="card-header">
+                        UWAGA!
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">W tym momencie stronę przegląda `
+                    + n +
+                                    ` użytkowników!</h5>
+                    </div>
+                    <div class="card-footer text-muted">
+                        Pospiesz się i zrób zakup, bo będą przed tobą!!!
+                    </div>
+                </div>`;
+            }else{
+                this.activity = '';
+            }
+        },
         load: async function(){
             const url = window.location.href + 'get/';
             this.tour = await (await fetch(url)).json();
@@ -47,20 +69,37 @@ export default{
             if(this.rooms == ''){
                 this.rooms = 'Brak wolnych pokoji.';
             }
+            var response = await (await fetch(window.location.href + 'watch/')).json();
+            this.get_activity(response);
         },
         redirectToReservation(url) {
             window.location.href += 'buy/';
         },
+        leaving: async function(e){
+            var response = await fetch(window.location.href + 'watch_end/');
+        },
+        leavingatall: async function(e){
+            var response = await fetch(window.location.href + 'watch_end/');
+        },
+        async fetchWatch() {
+            var response = await (await fetch(window.location.href + 'watch_check/')).json();
+            this.get_activity(response);
+        },
+
     },
     computed: {},
     mounted() {
+        window.addEventListener('beforeunload', this.leaving);
+        window.addEventListener('unload', this.leavingatall);
         this.load();
+        setInterval(this.fetchWatch, 10000);
     },
     template: /*html*/`
     
     <div v-if="tour">
     <div class="my-3 p-3">
         <h2 class="display-5">{{ tour.country }}{{ tour.city !== '' ? ', ' + tour.city : '' }}</h2>
+        <div v-html="activity"></div>
         <img :src="tour.img" alt="Hotel Image" style="max-width: 100%;">
         <p class="lead">{{ tour.description }}</p>
     </div>
