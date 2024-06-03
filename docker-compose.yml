@@ -11,6 +11,13 @@ services:
       - MONGO_INITDB_ROOT_USERNAME=mongoadmin
       - MONGO_INITDB_ROOT_PASSWORD=secret
       - MONGO_INITDB_DATABASE=TravelDB
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+        window: 120s
     networks:
       - 180140_backend-network
       
@@ -24,6 +31,13 @@ services:
     environment:
       - FLASK_APP=app.py
       - FLASK_RUN_HOST=0.0.0.0
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+        window: 120s
     networks:
       - 180140_backend-network
 
@@ -35,6 +49,13 @@ services:
     environment:
       - FLASK_APP=app/app.py
       - FLASK_RUN_HOST=0.0.0.0
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+        window: 120s
     networks:
       - 180140_backend-network
 
@@ -44,6 +65,13 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+        window: 120s
     networks:
       - 180140_backend-network
     
@@ -53,6 +81,13 @@ services:
     depends_on:
       - 180140_travel-mongo
       - 180140_rabbitmq-gateway
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+        window: 120s
     networks:
       - 180140_backend-network
     
@@ -64,6 +99,13 @@ services:
       - 180140_rabbitmq-gateway
     environment:
       - FLASK_APP=app.py
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+        window: 120s
     networks:
       - 180140_backend-network
 
@@ -75,6 +117,13 @@ services:
       - 180140_rabbitmq-gateway
     environment:
       - FLASK_APP=app.py
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+        window: 120s
     networks:
       - 180140_backend-network
 
@@ -86,12 +135,26 @@ services:
       - 180140_rabbitmq-gateway
     environment:
       - FLASK_APP=app.py
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+        window: 120s
     networks:
       - 180140_backend-network
 
   postgres_db:
     container_name: 180140_postgres-db-reservations
     image: 180140_postgres-db-reservations
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+        window: 120s
     networks:
       - 180140_backend-network
 
@@ -100,10 +163,17 @@ services:
     image: redis:latest
     ports:
       - "6379:6379"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+        window: 120s
     networks:
       - 180140_backend-network
 
 networks:
   180140_backend-network:
     name: 180140_backend-network
-    driver: bridge
+    driver: overlay
