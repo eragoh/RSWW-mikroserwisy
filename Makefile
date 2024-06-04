@@ -14,6 +14,9 @@ build:
 	docker build microservices/reservation/ -t $(REPO_PREFIX)180140_reservation-service &
 	docker build microservices/activities/ -t $(REPO_PREFIX)180140_activities-service &
 	docker build reservations-postgres/ -t $(REPO_PREFIX)180140_postgres-db-reservations &
+	docker build tour-operator-changes/postgress-toc/ -t $(REPO_PREFIX)180140_toc-postgres &
+	docker build tour-operator-changes/toc-service/ -t $(REPO_PREFIX)180140_toc-service &
+	docker build redis/ -t redis-service &
 	docker build tests/ -t $(REPO_PREFIX)180140_tests &
 	wait
 

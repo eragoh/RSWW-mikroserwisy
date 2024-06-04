@@ -1,8 +1,8 @@
 version: '3.8'
 services:
-  180140_travel-mongo:
-    container_name: 180140_travel-mongo
-    image: 180140_mongo
+  travel-mongo:
+    container_name: travel-mongo
+    image: travel-mongo
     volumes:
       - ./travelDB-mongoDB/travel-offers:/var/my-db
       - ./travelDB-mongoDB/init-scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
@@ -11,6 +11,8 @@ services:
       - MONGO_INITDB_ROOT_USERNAME=mongoadmin
       - MONGO_INITDB_ROOT_PASSWORD=secret
       - MONGO_INITDB_DATABASE=TravelDB
+    networks:
+      - 180140_backend-network
     deploy:
       replicas: 1
       restart_policy:
@@ -18,19 +20,19 @@ services:
         delay: 5s
         max_attempts: 0
         window: 120s
-    networks:
-      - 180140_backend-network
       
-  180140_gateway-api:
-    container_name: 180140_gateway-api
-    image: 180140_gateway-api
+  gateway-api:
+    container_name: gateway-api
+    image: gateway-api
     depends_on:
-      - 180140_travel-mongo
-      - 180140_rabbitmq-gateway
-      - redis
+      - travel-mongo
+      - rabbitmq-gateway
+      - redis-service
     environment:
       - FLASK_APP=app.py
       - FLASK_RUN_HOST=0.0.0.0
+    networks:
+      - 180140_backend-network
     deploy:
       replicas: 1
       restart_policy:
@@ -38,17 +40,17 @@ services:
         delay: 5s
         max_attempts: 0
         window: 120s
-    networks:
-      - 180140_backend-network
 
-  frontend:
-    container_name: 180140_frontend-api
-    image: 180140_frontend-api
+  frontend-api:
+    container_name: frontend-api
+    image: frontend-api
     ports:
       - "8080:8080"
     environment:
       - FLASK_APP=app/app.py
       - FLASK_RUN_HOST=0.0.0.0
+    networks:
+      - 180140_backend-network
     deploy:
       replicas: 1
       restart_policy:
@@ -56,15 +58,15 @@ services:
         delay: 5s
         max_attempts: 0
         window: 120s
-    networks:
-      - 180140_backend-network
 
-  180140_rabbitmq-gateway:
-    container_name: 180140_rabbitmq-gateway
-    image: 180140_rabbitmq-gateway
+  rabbitmq-gateway:
+    container_name: rabbitmq-gateway
+    image: rabbitmq-gateway
     ports:
       - "5672:5672"
       - "15672:15672"
+    networks:
+      - 180140_backend-network
     deploy:
       replicas: 1
       restart_policy:
@@ -72,15 +74,15 @@ services:
         delay: 5s
         max_attempts: 0
         window: 120s
-    networks:
-      - 180140_backend-network
     
-  180140_api-gateway:
-    container_name: 180140_api-gateway
-    image: 180140_api-gateway
+  api-gateway:
+    container_name: api-gateway
+    image: api-gateway
     depends_on:
-      - 180140_travel-mongo
-      - 180140_rabbitmq-gateway
+      - travel-mongo
+      - rabbitmq-gateway
+    networks:
+      - 180140_backend-network
     deploy:
       replicas: 1
       restart_policy:
@@ -88,17 +90,17 @@ services:
         delay: 5s
         max_attempts: 0
         window: 120s
-    networks:
-      - 180140_backend-network
     
-  payment_service:
-    container_name: 180140_payment-service
-    image: 180140_payment-service
+  payment-service:
+    container_name: payment-service
+    image: payment-service
     depends_on:
-      - 180140_travel-mongo
-      - 180140_rabbitmq-gateway
+      - travel-mongo
+      - rabbitmq-gateway
     environment:
       - FLASK_APP=app.py
+    networks:
+      - 180140_backend-network
     deploy:
       replicas: 1
       restart_policy:
@@ -106,17 +108,17 @@ services:
         delay: 5s
         max_attempts: 0
         window: 120s
-    networks:
-      - 180140_backend-network
 
-  activities_service:
-    container_name: 180140_activities-service
-    image: 180140_activities-service
+  activities-service:
+    container_name: activities-service
+    image: activities-service
     depends_on:
-      - 180140_travel-mongo
-      - 180140_rabbitmq-gateway
+      - travel-mongo
+      - rabbitmq-gateway
     environment:
       - FLASK_APP=app.py
+    networks:
+      - 180140_backend-network
     deploy:
       replicas: 1
       restart_policy:
@@ -124,17 +126,17 @@ services:
         delay: 5s
         max_attempts: 0
         window: 120s
-    networks:
-      - 180140_backend-network
 
-  180140_reservation_service:
-    container_name: 180140_reservation_service
-    image: 180140_reservation-service
+  reservation-service:
+    container_name: reservation-service
+    image: reservation-service
     depends_on:
-      - 180140_travel-mongo
-      - 180140_rabbitmq-gateway
+      - travel-mongo
+      - rabbitmq-gateway
     environment:
       - FLASK_APP=app.py
+    networks:
+      - 180140_backend-network
     deploy:
       replicas: 1
       restart_policy:
@@ -142,12 +144,12 @@ services:
         delay: 5s
         max_attempts: 0
         window: 120s
+
+  postgres-db-reservations:
+    container_name: postgres-db-reservations
+    image: postgres-db-reservations
     networks:
       - 180140_backend-network
-
-  postgres_db:
-    container_name: 180140_postgres-db-reservations
-    image: 180140_postgres-db-reservations
     deploy:
       replicas: 1
       restart_policy:
@@ -155,14 +157,43 @@ services:
         delay: 5s
         max_attempts: 0
         window: 120s
+
+  toc-postgres:
+    container_name: toc-postgres
+    image: toc-postgres
     networks:
       - 180140_backend-network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+        window: 120s
 
-  redis:
-    container_name: 180140_redis-service
-    image: redis:latest
+  toc-service:
+    container_name: toc-service
+    image: toc-service
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_RUN_HOST=0.0.0.0
+    networks:
+      - 180140_backend-network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+        window: 120s
+
+  redis-service:
+    container_name: redis-service
+    image: redis-service
     ports:
       - "6379:6379"
+    networks:
+      - 180140_backend-network
     deploy:
       replicas: 1
       restart_policy:
@@ -170,8 +201,6 @@ services:
         delay: 5s
         max_attempts: 0
         window: 120s
-    networks:
-      - 180140_backend-network
 
 networks:
   180140_backend-network:
