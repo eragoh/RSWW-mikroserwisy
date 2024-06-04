@@ -36,27 +36,27 @@ async def operations():
 @api.route('/getcountries/')
 async def getcountries():
     #return await get_rmq_response('countries')
-    return await get_response(f'http://gateway-api:6543/data/countries')
+    return await get_response(f'http://180140_gateway-api:6543/data/countries')
 
 @api.route('/tours/<tourname>/get/')
 async def tour_detail(tourname):
     #return await get_rmq_response('data_tour')
-    return await get_response(f'http://gateway-api:6543/data/tours/{tourname}')
+    return await get_response(f'http://180140_gateway-api:6543/data/tours/{tourname}')
 
 @api.route('/tours/<tourname>/reserved_rooms/')
 async def reserved_rooms(tourname):
     #return await get_rmq_response('data_tour')
-    return await get_response(f'http://gateway-api:6543/data/reserved_rooms/{tourname}')
+    return await get_response(f'http://180140_gateway-api:6543/data/reserved_rooms/{tourname}')
 
 @api.route('/gettours/')
 async def gettours():
     page_number = request.args.get('page')
     page = int(page_number) if (page_number and page_number.isdigit()) else 1
-    return await get_response(f'http://gateway-api:6543/data/{page - 1}')
+    return await get_response(f'http://180140_gateway-api:6543/data/{page - 1}')
 
 @api.route('/gettoursparameters/',)
 async def toursparameters():
-    url = 'http://gateway-api:6543/data/tours/parameters?'  
+    url = 'http://180140_gateway-api:6543/data/tours/parameters?'  
     parameters = ('country', 'start_date', 'return_date', 'adults', 'children3', 'children10', 'children18', 'departue')
     for parameter in parameters:
         arg = request.args.get(parameter)
@@ -67,7 +67,7 @@ async def toursparameters():
 
 @api.route('/tours/<tourname>/minute/')
 async def oneminute_clock(tourname):
-    url = f'http://gateway-api:6543/clock/{tourname}'
+    url = f'http://180140_gateway-api:6543/clock/{tourname}'
     return await get_response(url)
 
 @api.route('/getprice/')
@@ -93,5 +93,5 @@ async def getprice():
     for key in data:
         parameters += f'{key}={data[key]}&'
 
-    url = 'http://gateway-api:6543/getprice?' + parameters
+    url = 'http://180140_gateway-api:6543/getprice?' + parameters
     return await get_response(url)

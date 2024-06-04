@@ -205,4 +205,4 @@ services:
 networks:
   180140_backend-network:
     name: 180140_backend-network
-    driver: bridge
+    driver: overlay

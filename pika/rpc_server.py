@@ -3,7 +3,7 @@ import pika
 
 credentials = pika.PlainCredentials('admin', 'password')
 connection = pika.BlockingConnection(
-    pika.ConnectionParameters(host='rabbitmq-gateway', credentials=credentials))
+    pika.ConnectionParameters(host='180140_rabbitmq-gateway', credentials=credentials))
 
 channel = connection.channel()
 
