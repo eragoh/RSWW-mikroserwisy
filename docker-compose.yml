@@ -2,7 +2,7 @@ version: '3.8'
 services:
   travel-mongo:
     container_name: travel-mongo
-    image: mongo
+    image: travel-mongo
     volumes:
       - ./travelDB-mongoDB/travel-offers:/var/my-db
       - ./travelDB-mongoDB/init-scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro

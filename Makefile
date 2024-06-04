@@ -3,7 +3,7 @@
 all: build
 
 build:
-	docker build travelDB-mongoDB/ -t mongo &
+	docker build travelDB-mongoDB/ -t travel-mongo &
 	docker build gateway_api/ -t gateway-api &
 	docker build frontend/ -t frontend-api &
 	docker build rabbitmq-gateway/ -t rabbitmq-gateway &
