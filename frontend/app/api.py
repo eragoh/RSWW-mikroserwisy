@@ -30,7 +30,8 @@ api = Blueprint('api', __name__)
 
 @api.route('/operations/')
 async def operations():
-    return await get_response(f'http://toc-service:7777/operations/')
+    #return await get_response(f'http://toc-service:7777/operations/')
+    return await get_response(f'http://gateway-api:6543/operations/')
 
 @api.route('/getcountries/')
 async def getcountries():

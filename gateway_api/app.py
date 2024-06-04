@@ -94,7 +94,8 @@ def setup_topic_exchange_and_queues(exchange_name='order'):
             'check_reservation',
         ],
         'watch_queue': ['watch', 'watch_end', 'watch_check'],
-        'payment_queue': ['payment']
+        'payment_queue': ['payment'],
+        'toc_service_queue': ['buy', 'operations']
     }
 
     for queue, routing_keys in queues.items():
@@ -180,6 +181,28 @@ def get_price(offer):
 @app.route('/')
 def hello_world():
     return 'Hello, Gateway!'
+
+@app.route('/operations/')
+async def operations():
+    event_id = str(uuid.uuid4())
+    event = {
+        'event_id': event_id,
+    }
+    logger.info("OPERATIONS - %s", event_id)
+    publish_topic_event(event, 'operations')
+
+    logger.info("WAITING")
+    try:
+        response_event = await asyncio.wait_for(get_response_from_redis(event_id), timeout=10000)
+    except asyncio.TimeoutError as e:
+        logger.info(f"ERROR: {e}")
+        return jsonify({'error': f'Timeout while waiting for response: {e}'})
+    
+    response_event.pop('event_id', None)
+    logger.info(f"RESPONSE[operations]: {response_event}")
+    
+    return response_event
+
 
 @app.route('/getprice/')
 def getprice():

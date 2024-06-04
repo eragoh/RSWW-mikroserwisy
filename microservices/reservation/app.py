@@ -5,8 +5,9 @@ import logging
 import sys
 import time
 import psycopg2
-from pymongo import MongoClient
-from bson.objectid import ObjectId
+import uuid
+# from pymongo import MongoClient
+# from bson.objectid import ObjectId
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -172,15 +173,22 @@ def handle_reservation_paid_request(channel, method, properties, body):
             connection.commit()
             logger.info("Rezerwacja została opłacona pomyślnie.")
 
-            mongoclient = MongoClient('mongodb://user:password@travel-mongo:27017/TravelDB')
-            db = mongoclient.get_default_database()
-            update_query = {
-                "$set": {
-                    f"room.{update_room(room)}": False
-                }
+            event = {
+                'event_id': str(uuid.uuid4()),
+                'trip_id': trip_id,
+                'room': room
             }
-            result = db.travelOffers.update_one({"_id": ObjectId(trip_id)}, update_query)
-            logger.info(f'DB UPDATE: {result}')
+            publish_topic_event(get_rabbit_connection(), event, 'buy')
+
+            # mongoclient = MongoClient('mongodb://user:password@travel-mongo:27017/TravelDB')
+            # db = mongoclient.get_default_database()
+            # update_query = {
+            #     "$set": {
+            #         f"room.{update_room(room)}": False
+            #     }
+            # }
+            # result = db.travelOffers.update_one({"_id": ObjectId(trip_id)}, update_query)
+            # logger.info(f'DB UPDATE: {result}')
         except (Exception, psycopg2.DatabaseError) as error:
             logger.info(f"Błąd podczas opłacania rezerwacji: {error}")
 
