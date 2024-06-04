@@ -17,7 +17,7 @@ stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
 
 rabbit_connection_params = pika.ConnectionParameters(
-    'rabbitmq-gateway',
+    '180140_rabbitmq-gateway',
     port=5672,
     credentials=pika.PlainCredentials('admin', 'password'))
 

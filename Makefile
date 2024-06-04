@@ -5,7 +5,7 @@ REPO_PREFIX ?= ''
 all: build
 
 build:
-	docker build travelDB-mongoDB/ -t $(REPO_PREFIX)180140_mongo &
+	docker build travelDB-mongoDB/ -t $(REPO_PREFIX)180140_travel-mongo &
 	docker build gateway-api/ -t $(REPO_PREFIX)180140_gateway-api &
 	docker build frontend/ -t $(REPO_PREFIX)180140_frontend-api &
 	docker build rabbitmq-gateway/ -t $(REPO_PREFIX)180140_rabbitmq-gateway &
