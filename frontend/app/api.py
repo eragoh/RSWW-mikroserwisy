@@ -28,6 +28,10 @@ async def post_response(url, data):
 
 api = Blueprint('api', __name__)
 
+@api.route('/operations/')
+async def operations():
+    return await get_response(f'http://toc-service:7777/operations/')
+
 @api.route('/getcountries/')
 async def getcountries():
     #return await get_rmq_response('countries')

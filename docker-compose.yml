@@ -2,7 +2,7 @@ version: '3.8'
 services:
   travel-mongo:
     container_name: travel-mongo
-    image: mongo-rsww480
+    image: mongo
     volumes:
       - ./travelDB-mongoDB/travel-offers:/var/my-db
       - ./travelDB-mongoDB/init-scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
@@ -13,23 +13,37 @@ services:
       - MONGO_INITDB_DATABASE=TravelDB
     networks:
       - backend-network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+        window: 120s
       
-  gateway_api:
+  gateway-api:
     container_name: gateway-api
-    image: gateway-api-rsww480
+    image: gateway-api
     depends_on:
       - travel-mongo
       - rabbitmq-gateway
-      - redis
+      - redis-service
     environment:
       - FLASK_APP=app.py
       - FLASK_RUN_HOST=0.0.0.0
     networks:
       - backend-network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+        window: 120s
 
-  frontend:
+  frontend-api:
     container_name: frontend-api
-    image: frontend-api-rsww480
+    image: frontend-api
     ports:
       - "8080:8080"
     environment:
@@ -37,28 +51,49 @@ services:
       - FLASK_RUN_HOST=0.0.0.0
     networks:
       - backend-network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+        window: 120s
 
   rabbitmq-gateway:
     container_name: rabbitmq-gateway
-    image: rabbitmq-gateway-rsww480
+    image: rabbitmq-gateway
     ports:
       - "5672:5672"
       - "15672:15672"
     networks:
       - backend-network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+        window: 120s
     
   api-gateway:
     container_name: api-gateway
-    image: api-gateway-rsww480
+    image: api-gateway
     depends_on:
       - travel-mongo
       - rabbitmq-gateway
     networks:
       - backend-network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+        window: 120s
     
-  payment_service:
+  payment-service:
     container_name: payment-service
-    image: payment-service-rsww480
+    image: payment-service
     depends_on:
       - travel-mongo
       - rabbitmq-gateway
@@ -66,10 +101,17 @@ services:
       - FLASK_APP=app.py
     networks:
       - backend-network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+        window: 120s
 
-  activities_service:
+  activities-service:
     container_name: activities-service
-    image: activities-service-rsww480
+    image: activities-service
     depends_on:
       - travel-mongo
       - rabbitmq-gateway
@@ -77,10 +119,17 @@ services:
       - FLASK_APP=app.py
     networks:
       - backend-network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+        window: 120s
 
-  reservation_service:
-    container_name: reservation_service
-    image: reservation-service-rsww480
+  reservation-service:
+    container_name: reservation-service
+    image: reservation-service
     depends_on:
       - travel-mongo
       - rabbitmq-gateway
@@ -88,20 +137,70 @@ services:
       - FLASK_APP=app.py
     networks:
       - backend-network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+        window: 120s
 
-  postgres_db:
+  postgres-db-reservations:
     container_name: postgres-db-reservations
-    image: postgres-db-reservations-rsww480
+    image: postgres-db-reservations
     networks:
       - backend-network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+        window: 120s
 
-  redis:
+  toc-postgres:
+    container_name: toc-postgres
+    image: toc-postgres
+    networks:
+      - backend-network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+        window: 120s
+
+  toc-service:
+    container_name: toc-service
+    image: toc-service
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_RUN_HOST=0.0.0.0
+    networks:
+      - backend-network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+        window: 120s
+
+  redis-service:
     container_name: redis-service
-    image: redis:latest
+    image: redis-service
     ports:
       - "6379:6379"
     networks:
       - backend-network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+        window: 120s
 
 networks:
   backend-network:
