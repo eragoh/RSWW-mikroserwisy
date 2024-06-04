@@ -2,7 +2,7 @@ version: '3.8'
 services:
   travel-mongo:
     container_name: travel-mongo
-    image: travel-mongo
+    image: 180140_travel-mongo
     volumes:
       - ./travelDB-mongoDB/travel-offers:/var/my-db
       - ./travelDB-mongoDB/init-scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
@@ -23,7 +23,7 @@ services:
       
   gateway-api:
     container_name: gateway-api
-    image: gateway-api
+    image: 180140_gateway-api
     depends_on:
       - travel-mongo
       - rabbitmq-gateway
@@ -43,7 +43,7 @@ services:
 
   frontend-api:
     container_name: frontend-api
-    image: frontend-api
+    image: 180140_frontend-api
     ports:
       - "8080:8080"
     environment:
@@ -61,7 +61,7 @@ services:
 
   rabbitmq-gateway:
     container_name: rabbitmq-gateway
-    image: rabbitmq-gateway
+    image: 180140_rabbitmq-gateway
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -77,7 +77,7 @@ services:
     
   api-gateway:
     container_name: api-gateway
-    image: api-gateway
+    image: 180140_api-gateway
     depends_on:
       - travel-mongo
       - rabbitmq-gateway
@@ -93,7 +93,7 @@ services:
     
   payment-service:
     container_name: payment-service
-    image: payment-service
+    image: 180140_payment-service
     depends_on:
       - travel-mongo
       - rabbitmq-gateway
@@ -111,7 +111,7 @@ services:
 
   activities-service:
     container_name: activities-service
-    image: activities-service
+    image: 180140_activities-service
     depends_on:
       - travel-mongo
       - rabbitmq-gateway
@@ -129,7 +129,7 @@ services:
 
   reservation-service:
     container_name: reservation-service
-    image: reservation-service
+    image: 180140_reservation-service
     depends_on:
       - travel-mongo
       - rabbitmq-gateway
@@ -147,7 +147,7 @@ services:
 
   postgres-db-reservations:
     container_name: postgres-db-reservations
-    image: postgres-db-reservations
+    image: 180140_postgres-db-reservations
     networks:
       - 180140_backend-network
     deploy:
@@ -160,7 +160,7 @@ services:
 
   toc-postgres:
     container_name: toc-postgres
-    image: toc-postgres
+    image: 180140_toc-postgres
     networks:
       - 180140_backend-network
     deploy:
@@ -173,7 +173,7 @@ services:
 
   toc-service:
     container_name: toc-service
-    image: toc-service
+    image: 180140_toc-service
     environment:
       - FLASK_APP=app.py
       - FLASK_RUN_HOST=0.0.0.0
@@ -189,7 +189,7 @@ services:
 
   redis-service:
     container_name: redis-service
-    image: redis-service
+    image: 180140_redis-service
     ports:
       - "6379:6379"
     networks:
