@@ -6,6 +6,7 @@ export default{
             tour: null,
             rooms: '',
             activity: '',
+            availableh: true
         }
     },
     methods: {
@@ -68,6 +69,7 @@ export default{
             }
             if(this.rooms == ''){
                 this.rooms = 'Brak wolnych pokoji.';
+                this.availableh=false;
             }
             var response = await (await fetch(window.location.href + 'watch/')).json();
             this.get_activity(response);
@@ -129,12 +131,23 @@ export default{
                 <h4 class="mb-1 me-1">{{tour.price}}zł/os.</h4>
                 <span class="text-danger"><s>{{Math.round(1.2 * tour.price) + 0.99}}zł</s></span>
             </div>
-            <h6 class="text-success">Dostępny</h6>
-            <div class="d-flex flex-column mt-4">
-                <button @click="redirectToReservation(tour._id.$oid)" data-mdb-button-init data-mdb-ripple-init class="btn btn-outline-primary btn-sm mt-2" type="button">
-                    Kup teraz!
-                </button>
+            <div v-if="availableh">
+                <h6 class="text-success">Dostępny</h6>
+                <div class="d-flex flex-column mt-4">
+                    <button @click="redirectToReservation(tour._id.$oid)" data-mdb-button-init data-mdb-ripple-init class="btn btn-outline-primary btn-sm mt-2" type="button">
+                        Kup teraz!
+                    </button>
+                </div>
             </div>
+            <div v-else>
+                <h6 class="text-danger">Niedostępny</h6>
+                <div class="d-flex flex-column mt-4">
+                    <button disabled @click="redirectToReservation(tour._id.$oid)" data-mdb-button-init data-mdb-ripple-init class="btn btn-outline-primary btn-sm mt-2" type="button">
+                        Kup teraz!
+                    </button>
+                </div>
+            </div>
+            
         </div>
     </div>
 </div>

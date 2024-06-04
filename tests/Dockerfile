@@ -7,4 +7,4 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
-CMD ["pytest", "test_endpoints.py"]
+CMD ["pytest", "-s", "-v", "test_endpoints.py"]
