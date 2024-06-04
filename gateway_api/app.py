@@ -18,7 +18,7 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 stream_handler = logging.StreamHandler(sys.stdout)
 stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
-RABBIT_HOST = 'rabbitmq-gateway'
+RABBIT_HOST = '180140_rabbitmq-gateway'
 
 
 app = Flask(__name__)
