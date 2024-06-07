@@ -35,44 +35,39 @@ export default{
             const url = window.location.href + 'get/';
             this.tour = await (await fetch(url)).json();
             
+            this.prepare_rooms();
+            
+            var response = await (await fetch(window.location.href + 'watch/')).json();
+            this.get_activity(response);
+        },
+        prepare_rooms: async function(){
             var rooms_table = await (await fetch(window.location.href + 'reserved_rooms/')).json();
-            var dict = {
-                'Standardowy' : true,
-                'Apartament' : true,
-                'Studio' : true,
-                'Rodzinny' : true,
-            };
-            for(var r in rooms_table['results']){
-                dict[rooms_table['results'][r]] = false;
-            }
 
-            if(this.tour.room.is_standard && dict['Standardowy']){
-                this.rooms += '<span>Pokój standardowy</span>';
+            if(rooms_table['is_standard'] > 0){
+                this.rooms += '<span>Pokój standardowy[' + rooms_table['is_standard'] + ']</span>';
             }
-            if(this.tour.room.is_apartment && dict['Apartament']){
+            if(rooms_table['is_apartment'] > 0){
                 if(this.rooms !== ''){
                     this.rooms += '<span class="text-primary"> • </span>';
                 }
-                this.rooms += '<span>Apartament</span>';
+                this.rooms += '<span>Apartament[' + rooms_table['is_apartment'] + ']</span>';
             }
-            if(this.tour.room.is_studio && dict['Studio']){
+            if(rooms_table['is_studio'] > 0){
                 if(this.rooms !== ''){
                     this.rooms += '<span class="text-primary"> • </span>';
                 }
-                this.rooms += '<span>Studio</span>';
+                this.rooms += '<span>Studio[' + rooms_table['is_studio'] + ']</span>';
             }
-            if(this.tour.room.is_family && dict['Rodzinny']){
+            if(rooms_table['is_family'] > 0){
                 if(this.rooms !== ''){
                     this.rooms += '<span class="text-primary"> • </span>';
                 }
-                this.rooms += '<span>Pokój rodzinny</span>';
+                this.rooms += '<span>Pokój rodzinny[' + rooms_table['is_family'] + ']</span>';
             }
             if(this.rooms == ''){
                 this.rooms = 'Brak wolnych pokoji.';
                 this.availableh=false;
             }
-            var response = await (await fetch(window.location.href + 'watch/')).json();
-            this.get_activity(response);
         },
         redirectToReservation(url) {
             window.location.href += 'buy/';

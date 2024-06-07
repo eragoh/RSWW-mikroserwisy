@@ -23,6 +23,7 @@ export default {
                 'Rodzinny' : true,
             },
             loading: true,
+            roomstab: [0, 0, 0, 0]
         }
     },
     methods: {
@@ -30,6 +31,22 @@ export default {
             var url = '/getprice/?price=' + this.tour.price + '&adults=' + this.formData.adults + '&ch3=' + this.formData.children3 + '&ch10=' + this.formData.children10 + '&ch18=' + this.formData.children18 + '&room=' + this.formData.room;
             var priceresponse = await(await fetch(url)).json();
             this.price = priceresponse.price.toFixed(2);
+        },
+        prepare_rooms: async function(){
+            var rooms_table = await (await fetch('/tours/' + this.tourid + '/reserved_rooms/')).json();
+            if(rooms_table['is_standard'] > 0){
+                this.roomstab[0] = rooms_table['is_standard'];
+            }
+            if(rooms_table['is_apartment'] > 0){
+                this.roomstab[1] = rooms_table['is_apartment'];
+            }
+            if(rooms_table['is_studio'] > 0){
+                this.roomstab[2] = rooms_table['is_studio'];
+            }
+            if(rooms_table['is_family'] > 0){
+                this.roomstab[3] = rooms_table['is_family'];
+            }
+            console.log(this.roomstab);
         },
         confirmPayment: async function() {
             this.paymentConfirmed = true;          
@@ -75,10 +92,7 @@ export default {
             const url = '/tours/' + this.tourid + '/get/';
             this.tour = await (await fetch(url)).json();
 
-            var rooms_table = await (await fetch('/tours/' + this.tourid + '/reserved_rooms/')).json();
-            for(var r in rooms_table['results']){
-                this.dict[rooms_table['results'][r]] = false;
-            }
+            this.prepare_rooms();
             this.calculate_price();
             this.loading = false;
         },
@@ -182,17 +196,17 @@ export default {
                                                     <label for="children18">Typ pokoju</label>
                                                     <select class="form-control" id="room" name="room" v-model="formData.room" required :disabled="paymentConfirmed">
                                                         <option disabled value="">Wybierz pokój</option>
-                                                        <option v-if="tour.room.is_apartment && dict['Apartament']">
-                                                            Apartament
+                                                        <option v-if="roomstab[1] > 0">
+                                                            Apartament [{{roomstab[1]}}]
                                                         </option>
-                                                        <option v-if="tour.room.is_family && dict['Rodzinny']">
-                                                            Rodzinny
+                                                        <option v-if="roomstab[3] > 0">
+                                                            Rodzinny [{{roomstab[3]}}]
                                                         </option>
-                                                        <option v-if="tour.room.is_standard && dict['Standardowy']">
-                                                            Standardowy
+                                                        <option v-if="roomstab[0] > 0">
+                                                            Standardowy [{{roomstab[0]}}]
                                                         </option>
-                                                        <option v-if="tour.room.is_studio && dict['Studio']">
-                                                            Studio
+                                                        <option v-if="roomstab[2] > 0">
+                                                            Studio [{{roomstab[2]}}]
                                                         </option>
                                                     </select>
 

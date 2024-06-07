@@ -36,30 +36,39 @@ export default{
         async submitForm() {
             const url = `/gettoursparameters?page=${this.page}&country=${this.formData.country}&start_date=${this.formData.start_date}&return_date=${this.formData.return_date}&adults=${this.formData.adults}&children3=${this.formData.children3}&children10=${this.formData.children10}&children18=${this.formData.children18}&departue=${this.formData.departue}`;
             try{
-                var response = await (await fetch(url)).json();
-                this.tours = response;
+                var response = await fetch(url);
+                if(response.status === 200){
+                    var tourstab = await response.json();
+                    if(tourstab.length > 0){
+                        this.tours = tourstab;    
+                    }else{
+                        this.tours = null;
+                    }
+                }else{
+                    this.tours = null;
+                }
             }catch(error){
                 this.tours = null;
             }
         },
         roomsf: function(t){
             var rooms = ''
-            if(t.is_standard){
+            if(t.is_standard > 0){
                 rooms += '<span>Pokój standardowy</span>';
             }
-            if(t.is_family){
+            if(t.is_family > 0){
                 if(rooms !== ''){
                     rooms += '<span class="text-primary"> • </span>';
                 }
                 rooms += '<span>Pokój rodzinny</span>';
             }
-            if(t.is_apartment){
+            if(t.is_apartment > 0){
                 if(rooms !== ''){
                     rooms += '<span class="text-primary"> • </span>';
                 }
                 rooms += '<span>Apartament</span>';
             }
-            if(t.is_studio){
+            if(t.is_studio > 0){
                 if(rooms !== ''){
                     rooms += '<span class="text-primary"> • </span>';
                 }
