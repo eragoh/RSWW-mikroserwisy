@@ -111,13 +111,23 @@ def insert_into_reservations(username, trip_id, price, paid, room, adults, ch3, 
     
     return status
 
-def handle_reservation_request(channel, method, properties, body):
+def update_room(room):
+    if 'Standardowy' in room:
+        return 'Standardowy'
+    if 'Apartament' in room:
+        return 'Apartament'
+    if 'Rodzinny' in room:
+        return 'Rodzinny'
+    if 'Studio' in room:
+        return 'Studio'
+
+def handle_reservation_request(channel, method, properties, body):        
     logger.info("HANDLING")
     reservation_info = json.loads(body)
     username = reservation_info['username']
     trip_id = reservation_info['trip_id']
     price = float(reservation_info['price'])
-    room = reservation_info['room']
+    room = update_room(reservation_info['room'])
     adults  = int(reservation_info['adults'])
     ch3  = int(reservation_info['ch3'])
     ch10 = int(reservation_info['ch10'])
@@ -140,22 +150,12 @@ def handle_reservation_request(channel, method, properties, body):
     timer_thread = threading.Thread(target=start_timer, args=(trip_id,))
     timer_thread.start()
 
-def handle_reservation_paid_request(channel, method, properties, body):
-    def update_room(room):
-        if room == 'Standardowy':
-            return 'is_standard'
-        if room == 'Apartament':
-            return 'is_apartment'
-        if room == 'Rodzinny':
-            return 'is_family'
-        if room == 'Studio':
-            return 'is_studio'
-    
+def handle_reservation_paid_request(channel, method, properties, body):  
     reservation_info = json.loads(body)
     event_id = reservation_info['event_id']
     trip_id = reservation_info['trip_id']
     result = reservation_info['result']
-    room = reservation_info['room']
+    room = update_room(reservation_info['room'])
     if result == 'success':
         try:
             connection = get_connection()
@@ -234,6 +234,41 @@ def handle_myreservations(channel, method, properties, body):
         connection.close()
     
 def handle_check_rooms_reservation(channel, method, properties, body):
+    reservation_info = json.loads(body)
+    event_id = reservation_info['event_id']
+    trip_id = reservation_info['trip_id']
+    logger.info(f'CHECK ROOMS RESERVATION - {trip_id}')
+
+    try:
+        connection = get_connection()
+        cursor = connection.cursor()
+
+        cursor.execute(
+            """
+            SELECT room, COUNT(*) FROM RESERVATIONS WHERE trip = %s AND paid = %s GROUP BY room
+            """,
+            (trip_id, False)
+        )
+        room_counts = cursor.fetchall()
+        results = {room_type: count for room_type, count in room_counts}
+        logger.info(f"Znaleziono pokoje: {results}.")
+    
+        rabbit_conn = get_rabbit_connection()
+        return_event = {
+            'event_id': event_id,
+            'results': results
+        }
+        publish_topic_event(rabbit_conn, return_event, 'result')
+
+    except (Exception, psycopg2.DatabaseError) as error:
+        logger.info(f"Błąd podczas sprawdzania dostępnych pokoji: {error}")
+
+    finally:
+        if connection:
+            cursor.close()
+        connection.close()
+
+def handle_check_rooms_reservation2(channel, method, properties, body):
     reservation_info = json.loads(body)
     event_id = reservation_info['event_id']
     trip_id = reservation_info['trip_id']

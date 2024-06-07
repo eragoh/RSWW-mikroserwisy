@@ -9,5 +9,5 @@ CREATE TABLE RESERVATIONS (
     ch3 INTEGER,
     ch10 INTEGER,
     ch18 INTEGER,
-    CONSTRAINT unique_trip_room UNIQUE(trip, room)
+    CONSTRAINT unique_trip_room UNIQUE(trip, room, username)
 );

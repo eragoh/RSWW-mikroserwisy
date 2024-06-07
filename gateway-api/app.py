@@ -18,12 +18,11 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 stream_handler = logging.StreamHandler(sys.stdout)
 stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
-RABBIT_HOST = '180140_rabbitmq-gateway'
-
+RABBIT_HOST = 'rabbitmq-gateway'
 
 app = Flask(__name__)
-app.config["MONGO_URI"] = "mongodb://user:password@180140_travel-mongo:27017/TravelDB"
-redis_client = redis.StrictRedis(host='180140_redis-service', port=6379, db=0)
+app.config["MONGO_URI"] = "mongodb://user:password@travel-mongo:27017/TravelDB"
+redis_client = redis.StrictRedis(host='redis-service', port=6379, db=0)
 rabbit_connection_params = pika.ConnectionParameters(
     RABBIT_HOST,
     port=5672,
@@ -31,7 +30,6 @@ rabbit_connection_params = pika.ConnectionParameters(
 
 mongo = PyMongo(app)
 
-# Listen for responses from RabbitMQ
 def listen_for_results():
     logger.info("i ASD 0")
     logger.error("e ASD 0")
@@ -52,7 +50,6 @@ def listen_for_results():
     except Exception as e:
         logging.error(f"Failed to connect to RabbitMQ: {e}")
     
-# Start a separate thread to listen for results
 listener_thread = threading.Thread(target=listen_for_results)
 listener_thread.daemon = True
 listener_thread.start()
@@ -66,70 +63,6 @@ async def get_response_from_redis(event_id):
 
         await asyncio.sleep(1)  # Delay before checking again
 
-# Publish a purchase event directly to RabbitMQ
-# def publish_event_to_queue(event, queue):
-#     connection = pika.BlockingConnection(rabbit_connection_params)
-#     channel = connection.channel()
-#     channel.queue_declare(queue=queue, durable=True)
-#     channel.queue_declare(queue='result_queue', durable=True)
-
-#     channel.basic_publish(exchange='', routing_key=queue, body=json.dumps(event))
-#     connection.close()
-        
-
-def setup_topic_exchange_and_queues(exchange_name='order'):
-    connection = pika.BlockingConnection(rabbit_connection_params)
-    channel = connection.channel()
-    channel.exchange_declare(exchange=exchange_name, exchange_type='topic', durable=True)
-
-    # Declare queues and bind with routing keys based on patterns
-    queues = {
-        'result_queue': ['result', 'reservation_paid'],
-        'reservation_queue': [
-            'reservation_add',
-            'reservation_info',
-            'reservation_paid',
-            'myreservations',
-            'reserved_rooms',
-            'check_reservation',
-        ],
-        'watch_queue': ['watch', 'watch_end', 'watch_check'],
-        'payment_queue': ['payment'],
-        'toc_service_queue': ['buy', 'operations']
-    }
-
-    for queue, routing_keys in queues.items():
-        channel.queue_declare(queue=queue, durable=True)
-        if isinstance(routing_keys, list):
-            for routing_key in routing_keys:
-                channel.queue_bind(exchange=exchange_name, queue=queue, routing_key=routing_key)
-        else:
-            channel.queue_bind(exchange=exchange_name, queue=queue, routing_key=routing_keys)
-
-
-
-    # # Publish test messages to each queue
-    # test_messages = {
-    #     'result_queue': {'message': 'Result test'},
-    #     'reserve_queue': {'message': 'Reservation test'},
-    #     'pay_queue': {'message': 'Payment test'}
-    # }
-    # for queue, message in test_messages.items():
-    #     channel.basic_publish(exchange=exchange_name, routing_key=queues[queue], body=json.dumps(message))
-
-    # # Checking if messages are correctly routed
-    # for queue, _ in queues.items():
-    #     method_frame, header_frame, body = channel.basic_get(queue=queue, auto_ack=True)
-    #     if method_frame:
-    #         logger.info(f"Message from {queue}: {json.loads(body)}")
-    #     else:
-    #         logger.info(f"No message received in {queue}")
-
-
-
-    connection.close()
-
-
 def publish_topic_event(event, routing_key, exchange_name='order'):
     connection = pika.BlockingConnection(rabbit_connection_params)
     channel = connection.channel()
@@ -137,13 +70,31 @@ def publish_topic_event(event, routing_key, exchange_name='order'):
     logger.info(f"PUBLISHED: {event} // KEY: {routing_key}")
     connection.close()
 
+async def rabbit_message(routing_key, message, **kwargs):
+    event_id = str(uuid.uuid4())
+    event = {'event_id' : event_id}
+    for kwarg in kwargs:
+        event[kwarg] = kwargs[kwarg]
+    logger.info("PUBLISH EVENT[%s] (%s) - %s", message, event_id, str(event))
+    publish_topic_event(event, routing_key)
+    logger.info("WAITING[%s] (%s)", message, event_id)
+    try:
+        response_event = await asyncio.wait_for(get_response_from_redis(event_id), timeout=10000)
+    except asyncio.TimeoutError as e:
+        logger.info(f"ERROR[{message}]: {e}")
+        return jsonify({'error': f'Timeout while waiting for response: {e}'})
+    logger.info("RESPONSE[%s] (%s): %s", message, event_id, str(response_event))
+    response_event.pop('event_id', None)
+    return response_event
 
-def get_seasonal_factor(month):
-    if month in [6, 7, 8]:  # Summer
-        return 1.2
-    elif month in [12, 1, 2]: # Winter
-        return 1.1
-    return 1.0
+def rabbit_message_no_answer(routing_key, message, **kwargs):
+    event_id = str(uuid.uuid4())
+    event = {'event_id' : event_id}
+    for kwarg in kwargs:
+        event[kwarg] = kwargs[kwarg]
+    logger.info("PUBLISH EVENT[%s] (%s) - %s", message, event_id, str(event))
+    publish_topic_event(event, routing_key)
+
 
 def get_price(offer):
     base_price = offer.get('price', 4500)
@@ -177,45 +128,42 @@ def get_price(offer):
     total_price = round(total_price) + 0.99
     return total_price
 
+def update_room(room):
+    if 'Standardowy' in room:
+        return 'is_standard'
+    if 'Apartament' in room:
+        return 'is_apartment'
+    if 'Rodzinny' in room:
+        return 'is_family'
+    if 'Studio' in room:
+        return 'is_studio'
+
+def update_room_back(room):
+    if 'is_standard' in room:
+        return 'Standardowy'
+    if 'is_apartment' in room:
+        return 'Apartament'
+    if 'is_family' in room:
+        return 'Rodzinny'
+    if 'is_studio' in room:
+        return 'Studio'
 
 @app.route('/')
 def hello_world():
     return 'Hello, Gateway!'
-
-@app.route('/operations/')
-async def operations():
-    event_id = str(uuid.uuid4())
-    event = {
-        'event_id': event_id,
-    }
-    logger.info("OPERATIONS - %s", event_id)
-    publish_topic_event(event, 'operations')
-
-    logger.info("WAITING")
-    try:
-        response_event = await asyncio.wait_for(get_response_from_redis(event_id), timeout=10000)
-    except asyncio.TimeoutError as e:
-        logger.info(f"ERROR: {e}")
-        return jsonify({'error': f'Timeout while waiting for response: {e}'})
-    
-    response_event.pop('event_id', None)
-    logger.info(f"RESPONSE[operations]: {response_event}")
-    
-    return response_event
-
 
 @app.route('/getprice/')
 def getprice():
     sum = 0
     room = request.args.get('room')
     price = float(request.args.get('price'))
-    if room == 'Apartament':
+    if 'Apartament' in room:
         price += 900
-    elif room == 'Rodzinny':
+    elif 'Rodzinny' in room:
         price += 200
-    elif room == 'Standardowy':
+    elif 'Standardowy' in room:
         price += 400
-    elif room == 'Studio':
+    elif 'Studio' in room:
         price += 0
 
     data = {}
@@ -228,94 +176,51 @@ def getprice():
     sum += data['ch18'] * price * 0.8   
     return jsonify({'price' : sum})
 
+@app.route('/operations/')
+async def operations():
+    response_event = await rabbit_message('operations', 'operations')
+    return response_event
+
 @app.route('/data/countries')
-def get_countries():
-    some_data = mongo.db.travelOffers.distinct("country")
-    return Response(json_util.dumps(some_data), mimetype='application/json')
+async def get_countries():
+    response_event = await rabbit_message('countries', 'countries')
+    return Response(json_util.dumps(response_event['countries']), mimetype='application/json')
 
 @app.route('/watch/<tourname>')
 async def watch(tourname):
-    event_id = str(uuid.uuid4())
-    event = {
-        'event_id': event_id,
-        'tourname': tourname,
-    }
-    logger.info("WATCH (%s) - %s", tourname, event_id)
-    publish_topic_event(event, 'watch')
+    response_event = await rabbit_message('watch', 'watch',
+        tourname=tourname
+    )
+    return response_event
 
-    logger.info("WAITING")
-    try:
-        response_event = await asyncio.wait_for(get_response_from_redis(event_id), timeout=10000)
-    except asyncio.TimeoutError as e:
-        logger.info(f"ERROR: {e}")
-        return jsonify({'error': f'Timeout while waiting for response: {e}'})
-    
-    response_event.pop('event_id', None)
-    logger.info(f"RESPONSE[watch]: {response_event}")
-    
+@app.route('/watch_check/<tourname>')
+async def watch_check(tourname):
+    response_event = await rabbit_message('watch_check', 'watch_check',
+        tourname=tourname                               
+    )
     return response_event
 
 @app.route('/watch_end/<tourname>')
 async def watch_end(tourname):
-    event_id = str(uuid.uuid4())
-    event = {
-        'event_id': event_id,
-        'tourname': tourname,
-    }
-    logger.info("WATCH END (%s) - %s", tourname, event_id)
-    publish_topic_event(event, 'watch_end')
-  
+    rabbit_message_no_answer('watch_end', 'watch_end',
+        tourname=tourname                               
+    )
     return jsonify({'State': 'Ok'})
-
-@app.route('/watch_check/<tourname>')
-async def watch_check(tourname):
-    event_id = str(uuid.uuid4())
-    event = {
-        'event_id': event_id,
-        'tourname': tourname,
-    }
-    logger.info("WATCH END (%s) - %s", tourname, event_id)
-    publish_topic_event(event, 'watch_check')
-  
-    logger.info("WAITING")
-    try:
-        response_event = await asyncio.wait_for(get_response_from_redis(event_id), timeout=10000)
-    except asyncio.TimeoutError as e:
-        logger.info(f"ERROR: {e}")
-        return jsonify({'error': f'Timeout while waiting for response: {e}'})
-    
-    response_event.pop('event_id', None)
-    logger.info(f"RESPONSE[watch_check]: {response_event}")
-    
-    return response_event
-
 
 @app.route('/data/reserved_rooms/<tour>')
 async def get_tour_reserved_rooms(tour):
-    event_id = str(uuid.uuid4())
-    event = {
-        'event_id': event_id,
-        'trip_id': tour,
-
-    }
-
-    logger.info("CHECK RESERVED ROOMS FROM (%s) - %s", tour, event_id)
-    #publish_event_to_queue(event, 'reservation_queue')
-    publish_topic_event(event, 'reserved_rooms')
-
-    logger.info("WAITING")
+    reserved_rooms = await rabbit_message('reserved_rooms', 'reserved_rooms', trip_id=tour)
+    to_rooms = await rabbit_message('rooms', 'rooms', trip_id=tour)
     try:
-        response_event = await asyncio.wait_for(get_response_from_redis(event_id), timeout=10000)
-    except asyncio.TimeoutError as e:
-        logger.info(f"ERROR: {e}")
-        return jsonify({'error': f'Timeout while waiting for response: {e}'})
+        rooms = {
+            key : to_rooms['room'][key] - (reserved_rooms['results'][update_room_back(key)] if update_room_back(key) in reserved_rooms['results'] else 0)
+            for key in ('is_apartment', 'is_family', 'is_standard', 'is_studio')
+        }
+        return rooms
+    except Exception as error:
+        return jsonify({'eroor' : error})
 
-    response_event.pop('event_id', None)
-    logger.info(f"RESPONSE[get_tour_reserved_rooms]: {response_event}")
-    return response_event
-
-
-@app.route('/data/tours/<tour>')
+@app.route('/data/tours/<tour>') #mongo
 def get_data_tour(tour):
     try:
         some_data = mongo.db.travelOffers.find_one({"_id": ObjectId(tour)})
@@ -326,7 +231,7 @@ def get_data_tour(tour):
         return jsonify({"error": "No data found"}), 404
     return Response(json_util.dumps(some_data), mimetype='application/json')
 
-@app.route('/data/<page>')
+@app.route('/data/<page>') #mongo
 def get_data_page(page):
     try:
         some_data = [
@@ -341,7 +246,7 @@ def get_data_page(page):
     
     return Response(json_util.dumps(some_data), mimetype='application/json')
 
-@app.route('/data/tours/parameters')
+@app.route('/data/tours/parameters') #mongo
 def get_parametrized_data():
     country = request.args.get('country')
     start_date  = request.args.get('start_date')
@@ -352,8 +257,6 @@ def get_parametrized_data():
     children18  = request.args.get('children18')
     departue    = request.args.get('departue')
     search_dict = {}
-    
-
     try:
         if country:
             search_dict['country'] = country
@@ -371,6 +274,7 @@ def get_parametrized_data():
             search_dict['children_under_10'] = {'$gte': int(children10)}
         if children18:
             search_dict['children_under_18'] = {'$gte': int(children18)}
+        logger.info(f'SEARCH: {search_dict}')
         some_data = [
             {**offer, 'price': get_price(offer)} 
             for offer in 
@@ -378,10 +282,7 @@ def get_parametrized_data():
         ]
     except:
         return jsonify({"error": "No data found"}), 404
-    if not some_data:
-        return jsonify({"error": "No data found"}), 404
     return Response(json_util.dumps(some_data), mimetype='application/json')
-
 
 @app.route('/data/')
 def get_data():
@@ -394,125 +295,44 @@ def get_data():
         return jsonify({"error": "No data found"}), 404
     return Response(json_util.dumps(some_data), mimetype='application/json')
 
-
 @app.route('/reservation/add/')
 async def add_reservation():
-    logger.info("RESERV-ADD")
-    username = request.args.get('username')
-    trip_id = request.args.get('trip_id')
-    price = request.args.get('price')
-    room = request.args.get('room')
-    adults  = request.args.get('adults')
-    ch3  = request.args.get('ch3')
-    ch10 = request.args.get('ch10')
-    ch18 = request.args.get('ch18')
-    event_id = str(uuid.uuid4())
-    event = {
-        'event_id': event_id,
-        'username': username,
-        'trip_id': trip_id,
-        'price': price,
-        'room': room,
-        'adults': adults,
-        'ch3': ch3,
-        'ch10': ch10,
-        'ch18': ch18,
-    }
-
-    logger.info("PUBLISH RESERVATION: %s", event_id)
-    #publish_event_to_queue(event, 'reservation_queue')
-    publish_topic_event(event, 'reservation_add')
-
-    logger.info("WAITING")
-    try:
-        response_event = await asyncio.wait_for(get_response_from_redis(event_id), timeout=10000)
-    except asyncio.TimeoutError as e:
-        logger.info(f"ERROR: {e}")
-        return jsonify({'error': f'Timeout while waiting for response: {e}'})
-
-    response_event.pop('event_id', None)
-    logger.info(f"RESPONSE: {response_event}")
+    response_event = await rabbit_message('reservation_add', 'reservation_add',
+        username=request.args.get('username'),
+        trip_id=request.args.get('trip_id'),
+        price=request.args.get('price'),
+        room=request.args.get('room'),
+        adults=request.args.get('adults'),
+        ch3=request.args.get('ch3'),
+        ch10=request.args.get('ch10'),
+        ch18=request.args.get('ch18')                                     
+    )
     return response_event
 
 @app.route('/reservation/check/')
 async def check_reservation():
-    username = request.args.get('username')
-    trip_id = request.args.get('trip_id')
-    room = request.args.get('room')
-    event_id = str(uuid.uuid4())
-    event = {
-        'event_id': event_id,
-        'username': username,
-        'trip_id': trip_id,
-        'room': room,
-    }
-
-    logger.info("CHECK RESERVATION: %s", event_id)
-    publish_topic_event(event, 'check_reservation')
-
-    logger.info("WAITING")
-    try:
-        response_event = await asyncio.wait_for(get_response_from_redis(event_id), timeout=10000)
-    except asyncio.TimeoutError as e:
-        logger.info(f"ERROR: {e}")
-        return jsonify({'error': f'Timeout while waiting for response: {e}'})
-
-    response_event.pop('event_id', None)
-    logger.info(f"RESPONSE: {response_event}")
+    response_event = await rabbit_message('check_reservation', 'check_reservation',
+        username=request.args.get('username'),
+        trip_id=request.args.get('trip_id'),
+        room=request.args.get('room')
+    )
     return response_event
-
 
 @app.route('/reservation/pay/', methods=['POST'])
 async def pay_reservation():
-    logger.info("RESERV-PAY")
-    trip_id = request.form.get('trip_id')
-    card_number = request.form.get('card_number')
-    price = request.form.get('price')
-    room = request.form.get('room')
-    event_id = str(uuid.uuid4())
-    event = {
-        'event_id': event_id,
-        'trip_id': trip_id,
-        'card_number': card_number,
-        'price': price,
-        'room': room
-    }
-
-    logger.info("PUBLISH PAYMENT: %s", event_id)
-    #publish_event_to_queue(event, 'reservation_queue')
-    publish_topic_event(event, 'payment')
-
-    logger.info("WAITING")
-    try:
-        response_event = await asyncio.wait_for(get_response_from_redis(event_id), timeout=10000)
-    except asyncio.TimeoutError as e:
-        logger.info(f"ERROR: {e}")
-        return jsonify({'error': f'Timeout while waiting for response: {e}'})
-
-    response_event.pop('event_id', None)
-    logger.info(f"RESPONSE: {response_event}")
+    response_event = await rabbit_message('payment', 'payment',
+        trip_id = request.form.get('trip_id'),
+        card_number = request.form.get('card_number'),
+        price = request.form.get('price'),
+        room = request.form.get('room')              
+    )
     return response_event
 
 @app.route('/getmytours/')
 async def getmytours():
-    username = request.args.get('username')
-    event_id = str(uuid.uuid4())
-    event = {
-        'event_id': event_id,
-        'username': username
-    }
-    logger.info("PUBLISH getmytours: %s", event_id)
-    publish_topic_event(event, 'myreservations')
-    logger.info("WAITING")
-    try:
-        response_event = await asyncio.wait_for(get_response_from_redis(event_id), timeout=10000)
-    except asyncio.TimeoutError as e:
-        logger.info(f"ERROR: {e}")
-        return jsonify({'error': f'Timeout while waiting for response: {e}'})
-    logger.info(f"RESPONSE: {response_event}")
-    
-    #event jakis tam event, ktory zwraca rezerwacje klienta
-
+    response_event = await rabbit_message('myreservations', 'myreservations',
+        username = request.args.get('username')
+    )
     tours = [
         {
             'name':   result[2],
@@ -527,29 +347,39 @@ async def getmytours():
         for result in response_event['results']
     ]
     logger.info(f"RESPONSE TOURS: {tours}")
-    # tours = [
-    #     { "name": '663a2114bda936e962f8f4c0', "paid": False, "price": 0},
-    #     { "name": '663a2114bda936e962f8f4c1', "paid": True, "price": 9.99},
-    # ]
     return jsonify(tours)
-# @app.route('/reservation/pay/', methods=['POST'])
-# def pay_reservation():
-#     trip_id = request.form.get('trip_id')
-#     card_number = request.form.get('card_number')
-#     price = request.form.get('price')
 
-#     payment_data = {
-#         'trip_id': trip_id,
-#         'card_number': card_number,
-#         'price': price
-#     }
 
-#     response = requests.post("http://reservation-service:5674/reservation/pay", data=payment_data)
+def setup_topic_exchange_and_queues(exchange_name='order'):
+    connection = pika.BlockingConnection(rabbit_connection_params)
+    channel = connection.channel()
+    channel.exchange_declare(exchange=exchange_name, exchange_type='topic', durable=True)
 
-#     if response.status_code not in {200, 202}:
-#         return jsonify({"error": "Payment failed"}), response.status_code
+    # Declare queues and bind with routing keys based on patterns
+    queues = {
+        'result_queue': ['result', 'reservation_paid'],
+        'reservation_queue': [
+            'reservation_add',
+            'reservation_info',
+            'reservation_paid',
+            'myreservations',
+            'reserved_rooms',
+            'check_reservation',
+        ],
+        'watch_queue': ['watch', 'watch_end', 'watch_check'],
+        'payment_queue': ['payment'],
+        'toc_service_queue': ['buy', 'operations', 'countries', 'rooms']
+    }
 
-#     return jsonify(response.json()), response.status_code
+    for queue, routing_keys in queues.items():
+        channel.queue_declare(queue=queue, durable=True)
+        if isinstance(routing_keys, list):
+            for routing_key in routing_keys:
+                channel.queue_bind(exchange=exchange_name, queue=queue, routing_key=routing_key)
+        else:
+            channel.queue_bind(exchange=exchange_name, queue=queue, routing_key=routing_keys)
+
+    connection.close()
 
 logger.debug(f"NAME: %s", __name__)
 logger.info(f"ASD 1")
