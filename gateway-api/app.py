@@ -22,7 +22,7 @@ logger.addHandler(stream_handler)
 RABBIT_HOST = 'rabbitmq-gateway'
 
 app = Flask(__name__)
-app.config["MONGO_URI"] = "mongodb://user:password@travel-mongo:27017/TravelDB"
+app.config["MONGO_URI"] = "mongodb://user:password@180140_travel-mongo:27017/TravelDB"
 redis_client = redis.StrictRedis(host='redis-service', port=6379, db=0)
 rabbit_connection_params = pika.ConnectionParameters(
     RABBIT_HOST,
