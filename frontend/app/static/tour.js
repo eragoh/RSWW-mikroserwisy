@@ -36,13 +36,18 @@ export default{
             this.tour = await (await fetch(url)).json();
             
             this.prepare_rooms();
+            this.prepare_rooms_interval = setInterval(
+                () => {
+                    this.prepare_rooms();
+                }, 2000
+            );
             
             var response = await (await fetch(window.location.href + 'watch/')).json();
             this.get_activity(response);
         },
         prepare_rooms: async function(){
             var rooms_table = await (await fetch(window.location.href + 'reserved_rooms/')).json();
-
+            this.rooms = '';
             if(rooms_table['is_standard'] > 0){
                 this.rooms += '<span>Pokój standardowy[' + rooms_table['is_standard'] + ']</span>';
             }

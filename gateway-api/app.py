@@ -11,6 +11,7 @@ import uuid
 import asyncio
 import logging
 import sys
+from collections import Counter
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -213,12 +214,17 @@ async def get_tour_reserved_rooms(tour):
     to_rooms = await rabbit_message('rooms', 'rooms', trip_id=tour)
     try:
         rooms = {
-            key : to_rooms['room'][key] - (reserved_rooms['results'][update_room_back(key)] if update_room_back(key) in reserved_rooms['results'] else 0)
+            key : to_rooms['room'].get(key, 0) - reserved_rooms['results'].get(update_room_back(key), 0)
             for key in ('is_apartment', 'is_family', 'is_standard', 'is_studio')
         }
-        return rooms
-    except Exception as error:
-        return jsonify({'eroor' : error})
+        return jsonify(rooms)
+    except KeyError as e:
+        logger.error(f'get_tour_reserved_rooms[KeyError] - {e}')
+        return jsonify({'error': f"Key error: {e.args[0]}"}), 400
+    except Exception as e:
+        logger.error(f'get_tour_reserved_rooms[Exception] - {e}')
+        return jsonify({'error': str(e)}), 400
+
 
 @app.route('/data/tours/<tour>') #mongo
 def get_data_tour(tour):
@@ -231,23 +237,8 @@ def get_data_tour(tour):
         return jsonify({"error": "No data found"}), 404
     return Response(json_util.dumps(some_data), mimetype='application/json')
 
-@app.route('/data/<page>') #mongo
-def get_data_page(page):
-    try:
-        some_data = [
-            {**offer, 'price': get_price(offer)}
-            for offer in 
-            list(mongo.db.travelOffers.find().skip(int(page) * 10).limit(10))
-        ]
-    except:
-        return get_data()
-    if not some_data:
-        return jsonify({"error": "No data found"}), 404
-    
-    return Response(json_util.dumps(some_data), mimetype='application/json')
 
-@app.route('/data/tours/parameters') #mongo
-def get_parametrized_data():
+def search(request):
     country = request.args.get('country')
     start_date  = request.args.get('start_date')
     return_date = request.args.get('return_date')
@@ -281,8 +272,121 @@ def get_parametrized_data():
             list(mongo.db.travelOffers.find(search_dict))
         ]
     except:
+        return None
+    
+    return some_data
+
+@app.route('/data/tours/parameters') #mongo
+def get_parametrized_data():
+    some_data = search(request)
+    if some_data is None:
         return jsonify({"error": "No data found"}), 404
     return Response(json_util.dumps(some_data), mimetype='application/json')
+
+def get_tour(tour_id):
+    some_data = mongo.db.travelOffers.find_one({"_id": ObjectId(tour_id)})
+    country = some_data['country']
+    departure_location = some_data['departure_location']
+    return country, departure_location
+
+def get_recommendation_value(tour, sorted_countries, sorted_departure_locations, sorted_rooms):
+    value = 0
+    country_c = 1
+    dl_c = 1.2
+    room_c = 0.5
+    for country, count in sorted_countries:
+        if country == tour['country']:
+            value += count * country_c
+            break
+    for dl, count in sorted_departure_locations:
+        if dl == tour['departure_location']:
+            value += count * dl_c
+            break
+    for room, count in sorted_rooms:
+        uroom = update_room(room)
+        if tour['room'][uroom] > 0:
+            value += count * room_c
+            break
+    return value
+
+def recommended_tours(tours, mytours_data):
+    logger.info(f'TOURS: {tours}')
+
+    mytours = []
+    for result in mytours_data:
+        tour_result = get_tour(result[2])
+        mytours.append({
+            'room': result[4],
+            'country': tour_result[0],
+            'departure_location': tour_result[1],
+        })
+    countries_count = Counter(item['country'] for item in mytours)
+    sorted_countries = sorted(countries_count.items(), key=lambda x: x[1], reverse=True)
+    departure_locations_count = Counter(item['departure_location'] for item in mytours)
+    sorted_departure_locations = sorted(departure_locations_count.items(), key=lambda x: x[1], reverse=True)
+    rooms_count = Counter(item['room'] for item in mytours)
+    sorted_rooms = sorted(rooms_count.items(), key=lambda x: x[1], reverse=True)
+
+    sorted_tours = sorted(tours, key=lambda x: get_recommendation_value(x, sorted_countries, sorted_departure_locations, sorted_rooms), reverse=True)
+    return sorted_tours
+
+@app.route('/data/tours/parameters/login') #mongo
+async def get_parametrized_recommended_data():
+    username = request.args.get('username')
+    some_data = search(request)
+    response_event = await rabbit_message('myreservations', 'get_parametrized_recommended_data',
+        username = username
+    )
+
+    tours = recommended_tours(some_data, response_event['results'])
+
+    if some_data is None:
+        return jsonify({"error": "No data found"}), 404
+    return Response(json_util.dumps(tours), mimetype='application/json')
+
+@app.route('/data/<page>') #mongo
+def get_data_page(page):
+    try:
+        some_data = [
+            {**offer, 'price': get_price(offer)}
+            for offer in 
+            list(mongo.db.travelOffers.find().skip(int(page) * 10).limit(10))
+        ]
+    except:
+        return get_data()
+    if not some_data:
+        return jsonify({"error": "No data found"}), 404
+    
+    return Response(json_util.dumps(some_data), mimetype='application/json')
+
+@app.route('/data/login/<page>') #mongo
+async def get_data_login_page(page):
+    username = request.args.get('username')
+    try:
+        some_data = [
+            {**offer, 'price': get_price(offer)}
+            for offer in 
+            list(mongo.db.travelOffers.find())
+        ]
+        response_event = await rabbit_message('myreservations', 'get_parametrized_recommended_data',
+            username = username
+        )
+        tours = recommended_tours(some_data, response_event['results'])
+    except:
+        return get_data()
+    if not some_data:
+        return jsonify({"error": "No data found"}), 404
+    page = int(page)
+    logger.info('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
+    logger.info('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
+    logger.info('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
+    logger.info(tours)
+    logger.info(f'{len(tours)} | {10 * page} | {10 * (page + 1)}')
+    logger.info(tours[10 * page : 10 * (page + 1)])
+    logger.info('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
+    logger.info('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
+    logger.info('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
+    return Response(json_util.dumps(tours[10 * page : 10 * (page + 1)]), mimetype='application/json')
 
 @app.route('/data/')
 def get_data():

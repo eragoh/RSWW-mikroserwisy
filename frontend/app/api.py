@@ -1,6 +1,7 @@
 import aiohttp
 from flask import Blueprint, request, jsonify
 from app import logger
+from flask_login import current_user
 
 async def get_response(url):
     try:
@@ -31,7 +32,7 @@ api = Blueprint('api', __name__)
 @api.route('/operations/')
 async def operations():
     #return await get_response(f'http://toc-service:7777/operations/')
-    return await get_response(f'http://gateway-api:6543/operations/')
+    return await get_response(f'http://180140_gateway-api:6543/operations/')
 
 @api.route('/getcountries/')
 async def getcountries():
@@ -52,11 +53,16 @@ async def reserved_rooms(tourname):
 async def gettours():
     page_number = request.args.get('page')
     page = int(page_number) if (page_number and page_number.isdigit()) else 1
+    if current_user.is_authenticated:
+        return await get_response(f'http://180140_gateway-api:6543/data/login/{page - 1}?username={current_user.username}')
     return await get_response(f'http://180140_gateway-api:6543/data/{page - 1}')
 
 @api.route('/gettoursparameters/',)
 async def toursparameters():
-    url = 'http://180140_gateway-api:6543/data/tours/parameters?'  
+    if current_user.is_authenticated:
+        url = f'http://180140_gateway-api:6543/data/tours/parameters/login?username={current_user.username}&'
+    else:
+        url = 'http://180140_gateway-api:6543/data/tours/parameters?'
     parameters = ('country', 'start_date', 'return_date', 'adults', 'children3', 'children10', 'children18', 'departue')
     for parameter in parameters:
         arg = request.args.get(parameter)

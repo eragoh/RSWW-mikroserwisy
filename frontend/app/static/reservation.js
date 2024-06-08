@@ -91,8 +91,12 @@ export default {
         load: async function(){
             const url = '/tours/' + this.tourid + '/get/';
             this.tour = await (await fetch(url)).json();
-
             this.prepare_rooms();
+            this.prepare_rooms_interval = setInterval(
+                () => {
+                    this.prepare_rooms();
+                }, 2000
+            );
             this.calculate_price();
             this.loading = false;
         },
