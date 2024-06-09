@@ -287,13 +287,15 @@ def get_tour(tour_id):
     some_data = mongo.db.travelOffers.find_one({"_id": ObjectId(tour_id)})
     country = some_data['country']
     departure_location = some_data['departure_location']
-    return country, departure_location
+    score = some_data['score']
+    return country, departure_location, score
 
-def get_recommendation_value(tour, sorted_countries, sorted_departure_locations, sorted_rooms):
+def get_recommendation_value(tour, sorted_countries, sorted_departure_locations, sorted_rooms, sorted_score):
     value = 0
-    country_c = 1
+    country_c = 1.5
     dl_c = 1.2
     room_c = 0.5
+    score_c = 0.6
     for country, count in sorted_countries:
         if country == tour['country']:
             value += count * country_c
@@ -307,6 +309,10 @@ def get_recommendation_value(tour, sorted_countries, sorted_departure_locations,
         if tour['room'][uroom] > 0:
             value += count * room_c
             break
+    for score, count in sorted_score:
+        if tour['score'] == score:
+            value += count * score_c
+            break
     return value
 
 def recommended_tours(tours, mytours_data):
@@ -319,6 +325,7 @@ def recommended_tours(tours, mytours_data):
             'room': result[4],
             'country': tour_result[0],
             'departure_location': tour_result[1],
+            'score': tour_result[2],
         })
     countries_count = Counter(item['country'] for item in mytours)
     sorted_countries = sorted(countries_count.items(), key=lambda x: x[1], reverse=True)
@@ -326,8 +333,10 @@ def recommended_tours(tours, mytours_data):
     sorted_departure_locations = sorted(departure_locations_count.items(), key=lambda x: x[1], reverse=True)
     rooms_count = Counter(item['room'] for item in mytours)
     sorted_rooms = sorted(rooms_count.items(), key=lambda x: x[1], reverse=True)
+    score_count = Counter(item['room'] for item in mytours)
+    sorted_scores = sorted(score_count.items(), key=lambda x: x[1], reverse=True)
 
-    sorted_tours = sorted(tours, key=lambda x: get_recommendation_value(x, sorted_countries, sorted_departure_locations, sorted_rooms), reverse=True)
+    sorted_tours = sorted(tours, key=lambda x: get_recommendation_value(x, sorted_countries, sorted_departure_locations, sorted_rooms, sorted_scores), reverse=True)
     return sorted_tours
 
 @app.route('/data/tours/parameters/login') #mongo
