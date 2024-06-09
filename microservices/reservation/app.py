@@ -178,7 +178,15 @@ def handle_reservation_paid_request(channel, method, properties, body):
                 'trip_id': trip_id,
                 'room': room
             }
-            publish_topic_event(get_rabbit_connection(), event, 'buy')
+
+            rconnection = get_rabbit_connection()
+            publish_topic_event(rconnection, event, 'buy')
+
+            abevent = {
+                'event_id': str(uuid.uuid4()),
+                'tour_id': trip_id,
+            }
+            publish_topic_event(rconnection, abevent, 'buy_activity_add')
 
             # mongoclient = MongoClient('mongodb://user:password@travel-mongo:27017/TravelDB')
             # db = mongoclient.get_default_database()

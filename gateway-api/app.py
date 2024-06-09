@@ -462,6 +462,12 @@ async def getmytours():
     logger.info(f"RESPONSE TOURS: {tours}")
     return jsonify(tours)
 
+@app.route('/get_if_bought/<tourname>')
+async def get_if_bought(tourname):
+    response_event = await rabbit_message('buy_activity_check', 'buy_activity_check',
+        tour_id=tourname                                           
+    )
+    return response_event
 
 def setup_topic_exchange_and_queues(exchange_name='order'):
     connection = pika.BlockingConnection(rabbit_connection_params)
@@ -479,7 +485,7 @@ def setup_topic_exchange_and_queues(exchange_name='order'):
             'reserved_rooms',
             'check_reservation',
         ],
-        'watch_queue': ['watch', 'watch_end', 'watch_check'],
+        'watch_queue': ['watch', 'watch_end', 'watch_check', 'buy_activity_add', 'buy_activity_check'],
         'payment_queue': ['payment'],
         'toc_service_queue': ['buy', 'operations', 'countries', 'rooms']
     }

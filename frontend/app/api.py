@@ -76,6 +76,11 @@ async def oneminute_clock(tourname):
     url = f'http://180140_gateway-api:6543/clock/{tourname}'
     return await get_response(url)
 
+@api.route('/tours/<tourname>/get_if_bought/')
+async def get_if_bought(tourname):
+    url = f'http://180140_gateway-api:6543/get_if_bought/{tourname}'
+    return await get_response(url)
+
 @api.route('/getprice/')
 async def getprice():
 

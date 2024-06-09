@@ -6,6 +6,7 @@ export default{
             tour: null,
             rooms: '',
             activity: '',
+            buy_activity: '',
             availableh: true
         }
     },
@@ -87,6 +88,25 @@ export default{
             var response = await (await fetch(window.location.href + 'watch_check/')).json();
             this.get_activity(response);
         },
+        fetch_buy: async function(){
+            var response = await (await fetch(window.location.href + 'get_if_bought/')).json();
+            if(response.bought){
+                this.buy_activity = 
+                `<div class="card text-center">
+                    <div class="card-header">
+                        UWAGA!
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Właśnie ktoś kupił tą wycieczkę!!!</h5>
+                    </div>
+                    <div class="card-footer text-muted">
+                        Pospiesz się i zrób zakup, bo będą przed tobą!!!
+                    </div>
+                </div>`;
+            }else{
+                this.buy_activity = '';
+            }
+        }
 
     },
     computed: {},
@@ -94,7 +114,8 @@ export default{
         window.addEventListener('beforeunload', this.leaving);
         window.addEventListener('unload', this.leavingatall);
         this.load();
-        setInterval(this.fetchWatch, 10000);
+        setInterval(this.fetchWatch, 2000);
+        setInterval(this.fetch_buy, 2000);
     },
     template: /*html*/`
     
@@ -102,6 +123,7 @@ export default{
     <div class="my-3 p-3">
         <h2 class="display-5">{{ tour.country }}{{ tour.city !== '' ? ', ' + tour.city : '' }}</h2>
         <div v-html="activity"></div>
+        <div v-html="buy_activity"></div>
         <img :src="tour.img" alt="Hotel Image" style="max-width: 100%;">
         <p class="lead">{{ tour.description }}</p>
     </div>

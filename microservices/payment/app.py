@@ -31,15 +31,18 @@ def process_payment(payment_info):
     """Process the payment synchronously."""
     time.sleep(3)  # Simulate processing time
     payment_success = random.choice([True, False])
+    logger.info(f'PAYMENT {payment_success}')
     return payment_success
 
 def handle_payment_request(ch, method, properties, body):
     payment_info = json.loads(body)
     rabbit_conn = get_rabbit_connection()
+    logger.info(f'handle_payment_request {payment_info}')
 
     if 'reserved' in payment_info.keys() and payment_info['reserved'] == 'true':
         payment_info.pop('reserved', None)
         result = process_payment(payment_info)
+        logger.info(f'RESULT: {result}')
         payment_info['result'] = 'success' if result else 'failure'
         publish_topic_event(rabbit_conn, payment_info, 'reservation_paid')
     else:

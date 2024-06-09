@@ -4,6 +4,7 @@ import random
 import logging
 import time
 import sys
+import datetime
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -13,6 +14,7 @@ stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
 
 WATCH_ACTIVITIES = {}
+BUY_ACTIVITIES = {}
 
 rabbit_connection_params = pika.ConnectionParameters(
     '180140_rabbitmq-gateway',
@@ -72,6 +74,28 @@ def handle_watch_end_request(ch, method, properties, body):
         WATCH_ACTIVITIES[tourname] = 0
     logger.info(f'handle_watch_end_request stop: {WATCH_ACTIVITIES[tourname]}')
 
+def handle_buy_activity_check_request(ch, method, properties, body):
+    logger.info('handle_buy_activity_check_request')
+    info = json.loads(body)
+    tour_id = info['tour_id']
+    rabbit_conn = get_rabbit_connection()
+    if tour_id in BUY_ACTIVITIES.keys():
+        now = datetime.datetime.now()
+        t = now - BUY_ACTIVITIES[tour_id]
+        info['bought'] = t.seconds < 60
+        logger.info(f'TIME {now} {BUY_ACTIVITIES[tour_id]} {t} {t.seconds}')
+    else:
+        info['bought'] = False
+    logger.info("PUBLISH handle_buy_activity_check_request EVENT (%s)", info)
+    publish_topic_event(rabbit_conn, info, 'result')
+
+def handle_buy_activity_add_request(ch, method, properties, body):
+    logger.info('handle_buy_activity_add_request')
+    info = json.loads(body)
+    logger.info(info)
+    tour_id = info['tour_id']
+    BUY_ACTIVITIES[tour_id] = datetime.datetime.now()
+    logger.info(BUY_ACTIVITIES[tour_id])
 
 def listen_to_rabbitmq():
     rabbit_connection = get_rabbit_connection()
@@ -83,10 +107,14 @@ def listen_to_rabbitmq():
         routing_key = method.routing_key
         if routing_key == 'watch':
             handle_watch_request(ch, method, properties, body)
-        if routing_key == 'watch_end':
+        elif routing_key == 'watch_end':
             handle_watch_end_request(ch, method, properties, body)
-        if routing_key == 'watch_check':
+        elif routing_key == 'watch_check':
             handle_watch_check_request(ch, method, properties, body)
+        elif routing_key == 'buy_activity_check':
+            handle_buy_activity_check_request(ch, method, properties, body)
+        elif routing_key == 'buy_activity_add':
+            handle_buy_activity_add_request(ch, method, properties, body)
         # Continue consuming messages
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
