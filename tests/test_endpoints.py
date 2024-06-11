@@ -126,7 +126,7 @@ def test_reservation_pay():
 
 def test_getmytours():
     params = {
-        'username': 'user1',
+        'username': 'user9',
     }
     response = requests.get(f'{BASE_URL}/getmytours/', params=params)
     assert response.status_code == 200
