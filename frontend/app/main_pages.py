@@ -12,6 +12,10 @@ mainpages = Blueprint('mainpages', __name__)
 async def index():
     return await arender('index.html', {})
 
+@mainpages.route('/operations/')
+async def operations():
+    return await arender('operations.html', {})
+
 @mainpages.route('/tours/')
 async def tours():
     page_number = request.args.get('page')

@@ -29,8 +29,8 @@ async def post_response(url, data):
 
 api = Blueprint('api', __name__)
 
-@api.route('/operations/')
-async def operations():
+@api.route('/operations_json/')
+async def operations_json():
     #return await get_response(f'http://toc-service:7777/operations/')
     return await get_response(f'http://180140_gateway-api:6543/operations/')
 
