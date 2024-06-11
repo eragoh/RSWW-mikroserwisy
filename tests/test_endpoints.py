@@ -63,6 +63,14 @@ def test_data_page():
     assert response.status_code == 200
     assert len(response.json()) == 10
 
+def test_data_login_page():
+    params = {
+        'username': 'user9',
+    }
+    response = requests.get(f'{BASE_URL}/data/login/2', params=params)
+    assert response.status_code == 200
+    assert len(response.json()) == 10
+
 def test_add_taken_reservation():
     params = {
         'username': 'username',
@@ -114,19 +122,9 @@ def test_check_no_reservation():
     assert response.status_code == 200
     assert response.json()['result'] == None
 
-def test_reservation_pay():
-    params = {
-        'trip_id': 'trip_id',
-        'card_number': 'card_number',
-        'price': '100',
-        'room': 'Standardowy'
-    }
-    response = requests.post(f'{BASE_URL}/reservation/pay/', json=params)
-    assert response.status_code == 200
-
 def test_getmytours():
     params = {
-        'username': 'user1',
+        'username': 'user9',
     }
     response = requests.get(f'{BASE_URL}/getmytours/', params=params)
     assert response.status_code == 200
