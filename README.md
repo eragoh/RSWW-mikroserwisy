@@ -5,6 +5,8 @@
 - Using CQRS, Event Sourcing, Saga patterns.
 - Deployment to a Docker Swarm cluster.
 
+
+
 ![image1](https://github.com/eragoh/RSWW-mikroserwisy/blob/main/images/img1.png)
 ![image2](https://github.com/user-attachments/assets/aa8d8542-35ab-4c3c-a0ce-07f81c092303)
 ![image3](https://github.com/user-attachments/assets/eddd9d4f-f249-4d37-ba41-099e219a3327)
